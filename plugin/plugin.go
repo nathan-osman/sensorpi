@@ -1,5 +1,9 @@
 package plugin
 
+import (
+	"gopkg.in/yaml.v3"
+)
+
 // Plugin represents a type that provides sensor values or processes them in
 // some way.
 type Plugin interface {
@@ -9,6 +13,12 @@ type Plugin interface {
 
 	// IsOutput indicates that this plugin can be used as an output.
 	IsOutput() bool
+
+	// Read collects the value from the input.
+	Read() (float64, error)
+
+	// Write processes data.
+	Write(float64, *yaml.Node) error
 
 	// Close shuts down the plugin.
 	Close()
