@@ -14,8 +14,8 @@ type Plugin interface {
 	// IsOutput indicates that this plugin can be used as an output.
 	IsOutput() bool
 
-	// Read collects the value from the input.
-	Read() (float64, error)
+	// Read collects the value for the specified input.
+	Read(*yaml.Node) (float64, error)
 
 	// Write processes data.
 	Write(float64, *yaml.Node) error

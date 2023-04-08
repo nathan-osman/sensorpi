@@ -58,7 +58,7 @@ func (i *InfluxDB) IsOutput() bool {
 	return true
 }
 
-func (i *InfluxDB) Read() (float64, error) {
+func (i *InfluxDB) Read(*yaml.Node) (float64, error) {
 	return 0, nil
 }
 
