@@ -57,13 +57,40 @@ func (m *Manager) getPlugin(name string, node *yaml.Node) (plugin.Plugin, error)
 	return p, nil
 }
 
+func (m *Manager) doTask(t *managerTask) error {
+	v, err := t.Input.Plugin.Read(t.Input.Parameters)
+	if err != nil {
+		return err
+	}
+	for _, o := range t.Outputs {
+		if err := o.Plugin.Write(v, o.Parameters); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *Manager) run() {
 	defer close(m.closedChan)
 	for {
-
-		// TODO: determine next task to run
-
+		var (
+			now      = time.Now()
+			nextTask time.Duration
+		)
+		for _, t := range m.tasks {
+			if !t.NextRun.After(now) {
+				if err := m.doTask(t); err != nil {
+					// TODO: log error
+				}
+			} else {
+				n := t.NextRun.Sub(now)
+				if nextTask == 0 || n < nextTask {
+					nextTask = n
+				}
+			}
+		}
 		select {
+		case <-time.After(nextTask):
 		case <-m.closeChan:
 			return
 		}
