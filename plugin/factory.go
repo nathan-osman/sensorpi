@@ -10,7 +10,7 @@ import (
 type FactoryFn func(*yaml.Node) (Plugin, error)
 
 var (
-	pluginMap map[string]FactoryFn
+	pluginMap map[string]FactoryFn = make(map[string]FactoryFn)
 )
 
 // Register registers a plugin in the global plugin map.
