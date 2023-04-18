@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/nathan-osman/sensorpi/input/onewire"
 	"github.com/nathan-osman/sensorpi/manager"
 	_ "github.com/nathan-osman/sensorpi/output/influxdb"
 	"github.com/urfave/cli/v2"
