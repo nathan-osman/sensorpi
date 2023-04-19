@@ -12,18 +12,18 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var configFlag = &cli.StringFlag{
+	Name:    "config",
+	Value:   "/etc/sensorpi/config.yaml",
+	EnvVars: []string{"CONFIG"},
+	Usage:   "filename of configuration file",
+}
+
 func main() {
 	app := &cli.App{
 		Name:  "sensorpi",
 		Usage: "monitor sensors connected to a Raspberry Pi",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:     "config",
-				Required: true,
-				EnvVars:  []string{"CONFIG"},
-				Usage:    "filename of configuration file",
-			},
-		},
+		Flags: []cli.Flag{configFlag},
 		Commands: []*cli.Command{
 			installCommand,
 		},

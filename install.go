@@ -30,15 +30,9 @@ connections:
 `
 
 var installCommand = &cli.Command{
-	Name:  "install",
-	Usage: "install the application as a local service",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "config",
-			Value: "/etc/sensorpi/config.yaml",
-			Usage: "filename of configuration file",
-		},
-	},
+	Name:   "install",
+	Usage:  "install the application as a local service",
+	Flags:  []cli.Flag{configFlag},
 	Action: install,
 }
 
