@@ -24,6 +24,9 @@ func main() {
 				Usage:    "filename of configuration file",
 			},
 		},
+		Commands: []*cli.Command{
+			installCommand,
+		},
 		Action: func(c *cli.Context) error {
 
 			// Create the manager from the config file
