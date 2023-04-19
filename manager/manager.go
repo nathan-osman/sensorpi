@@ -30,8 +30,8 @@ type Manager struct {
 }
 
 type configPlugin struct {
-	Plugin     string     `yaml:"plugin"`
-	Parameters *yaml.Node `yaml:"parameters"`
+	Plugin     string    `yaml:"plugin"`
+	Parameters yaml.Node `yaml:"parameters"`
 }
 
 type configConnection struct {
@@ -41,8 +41,8 @@ type configConnection struct {
 }
 
 type configRoot struct {
-	Plugins     map[string]*yaml.Node `yaml:"plugins"`
-	Connections []*configConnection   `yaml:"connections"`
+	Plugins     map[string]yaml.Node `yaml:"plugins"`
+	Connections []*configConnection  `yaml:"connections"`
 }
 
 func (m *Manager) getPlugin(name string, node *yaml.Node) (plugin.Plugin, error) {
@@ -82,6 +82,7 @@ func (m *Manager) run() {
 				if err := m.doTask(t); err != nil {
 					// TODO: log error
 				}
+				t.NextRun = t.NextRun.Add(t.Interval)
 			} else {
 				n := t.NextRun.Sub(now)
 				if nextTask == 0 || n < nextTask {
@@ -125,7 +126,7 @@ func New(filename string) (*Manager, error) {
 
 	// Initialize any plugins that are explicitly specified
 	for name, params := range root.Plugins {
-		_, err := m.getPlugin(name, params)
+		_, err := m.getPlugin(name, &params)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +146,7 @@ func New(filename string) (*Manager, error) {
 			}
 			outputPlugins = append(outputPlugins, &managerPluginAndParams{
 				Plugin:     p,
-				Parameters: output.Parameters,
+				Parameters: &output.Parameters,
 			})
 		}
 		m.tasks = append(m.tasks, &managerTask{
@@ -153,7 +154,7 @@ func New(filename string) (*Manager, error) {
 			NextRun:  now,
 			Input: &managerPluginAndParams{
 				Plugin:     p,
-				Parameters: c.Input.Parameters,
+				Parameters: &c.Input.Parameters,
 			},
 			Outputs: outputPlugins,
 		})
