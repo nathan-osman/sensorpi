@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nathan-osman/sensorpi/plugin"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -81,7 +82,7 @@ func (m *Manager) run() {
 		for _, t := range m.tasks {
 			if !t.NextRun.After(now) {
 				if err := m.doTask(t); err != nil {
-					// TODO: log error
+					log.Error().Msg(err.Error())
 				}
 				t.NextRun = t.NextRun.Add(t.Interval)
 			} else {
