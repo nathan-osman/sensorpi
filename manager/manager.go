@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -158,6 +159,11 @@ func New(filename string) (*Manager, error) {
 			},
 			Outputs: outputPlugins,
 		})
+	}
+
+	// Abort if there are no tasks
+	if len(m.tasks) == 0 {
+		return nil, errors.New("no tasks were created; aborting")
 	}
 
 	// Start the goroutine for processing the inputs
