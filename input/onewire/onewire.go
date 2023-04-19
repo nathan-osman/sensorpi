@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/nathan-osman/sensorpi/plugin"
 	"gopkg.in/yaml.v3"
@@ -45,7 +46,7 @@ func (o *OneWire) Read(node *yaml.Node) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	v, err := strconv.ParseInt(string(b), 10, 64)
+	v, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 64)
 	if err != nil {
 		return 0, err
 	}
