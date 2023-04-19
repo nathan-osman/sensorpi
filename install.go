@@ -83,6 +83,9 @@ func install(c *cli.Context) error {
 
 	fmt.Println("Service installed!")
 	fmt.Println("")
+	fmt.Println("Be sure to edit the configuration file:")
+	fmt.Println(c.String("config"))
+	fmt.Println("")
 	fmt.Println("To enable the service and start it, run:")
 	fmt.Println("  systemctl enable sensorpi")
 	fmt.Println("  systemctl start sensorpi")
