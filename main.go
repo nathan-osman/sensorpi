@@ -9,6 +9,7 @@ import (
 	_ "github.com/nathan-osman/sensorpi/input/grove-moisture"
 	_ "github.com/nathan-osman/sensorpi/input/onewire"
 	"github.com/nathan-osman/sensorpi/manager"
+	_ "github.com/nathan-osman/sensorpi/output/console"
 	_ "github.com/nathan-osman/sensorpi/output/influxdb"
 	"github.com/urfave/cli/v2"
 )
