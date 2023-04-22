@@ -55,13 +55,13 @@ func (m *Moisture) Read(node *yaml.Node) (float64, error) {
 		return 0, err
 	}
 	var (
-		w = []byte{0x10 + byte(params.Channel)}
+		w = []byte{byte(0x20 + params.Channel)}
 		r = make([]byte, 2)
 	)
 	if err := m.conn.Tx(w, r); err != nil {
 		return 0, err
 	}
-	v := binary.BigEndian.Uint16(r)
+	v := binary.LittleEndian.Uint16(r)
 	return float64(v), nil
 }
 
