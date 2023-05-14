@@ -87,11 +87,10 @@ func (m *Manager) run() {
 					log.Error().Msg(err.Error())
 				}
 				t.NextRun = t.NextRun.Add(t.Interval)
-			} else {
-				n := t.NextRun.Sub(now)
-				if nextTask == 0 || n < nextTask {
-					nextTask = n
-				}
+			}
+			n := t.NextRun.Sub(now)
+			if nextTask == 0 || n < nextTask {
+				nextTask = n
 			}
 		}
 		select {
