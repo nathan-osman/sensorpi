@@ -11,6 +11,7 @@ import (
 )
 
 type managerPluginAndParams struct {
+	Name       string
 	Plugin     plugin.Plugin
 	Parameters *yaml.Node
 }
@@ -64,9 +65,10 @@ func (m *Manager) doTask(t *managerTask) error {
 	if err != nil {
 		return err
 	}
+	log.Debug().Msgf("read %f from %s", v, t.Input.Name)
 	for _, o := range t.Outputs {
 		if err := o.Plugin.Write(v, o.Parameters); err != nil {
-			return err
+			log.Error().Msg(err.Error())
 		}
 	}
 	return nil
@@ -147,6 +149,7 @@ func New(filename string) (*Manager, error) {
 				return nil, err
 			}
 			outputPlugins = append(outputPlugins, &managerPluginAndParams{
+				Name:       output.Plugin,
 				Plugin:     p,
 				Parameters: &output.Parameters,
 			})
@@ -155,6 +158,7 @@ func New(filename string) (*Manager, error) {
 			Interval: c.Interval,
 			NextRun:  now,
 			Input: &managerPluginAndParams{
+				Name:       c.Input.Plugin,
 				Plugin:     p,
 				Parameters: &c.Input.Parameters,
 			},

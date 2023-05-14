@@ -11,6 +11,7 @@ import (
 	"github.com/nathan-osman/sensorpi/manager"
 	_ "github.com/nathan-osman/sensorpi/output/console"
 	_ "github.com/nathan-osman/sensorpi/output/influxdb"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,11 +26,25 @@ func main() {
 	app := &cli.App{
 		Name:  "sensorpi",
 		Usage: "monitor sensors connected to a Raspberry Pi",
-		Flags: []cli.Flag{configFlag},
+		Flags: []cli.Flag{
+			configFlag,
+			&cli.BoolFlag{
+				Name:    "debug",
+				EnvVars: []string{"DEBUG"},
+				Usage:   "enable debug mode",
+			},
+		},
 		Commands: []*cli.Command{
 			installCommand,
 		},
 		Action: func(c *cli.Context) error {
+
+			// Enable debug display if the flag is passed
+			if c.Bool("debug") {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			} else {
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			}
 
 			// Create the manager from the config file
 			m, err := manager.New(c.String("config"))
