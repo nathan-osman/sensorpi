@@ -7,7 +7,7 @@ import (
 )
 
 // FactoryFn provides a method for initializing a plugin.
-type FactoryFn func(*yaml.Node) (Plugin, error)
+type FactoryFn func(*yaml.Node) (any, error)
 
 var (
 	pluginMap map[string]FactoryFn = make(map[string]FactoryFn)
@@ -19,7 +19,7 @@ func Register(name string, factoryFn FactoryFn) {
 }
 
 // Create attempts to create a new plugin instance.
-func Create(name string, node *yaml.Node) (Plugin, error) {
+func Create(name string, node *yaml.Node) (any, error) {
 	f := pluginMap[name]
 	if f == nil {
 		return nil, fmt.Errorf("unknown plugin \"%s\"", name)

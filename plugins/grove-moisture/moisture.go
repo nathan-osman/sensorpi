@@ -22,7 +22,7 @@ type inputParams struct {
 }
 
 func init() {
-	plugin.Register("grove-moisture", func(node *yaml.Node) (plugin.Plugin, error) {
+	plugin.Register("grove-moisture", func(node *yaml.Node) (any, error) {
 		_, err := host.Init()
 		if err != nil {
 			return nil, err

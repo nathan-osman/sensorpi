@@ -6,11 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/nathan-osman/sensorpi/input/grove-moisture"
-	_ "github.com/nathan-osman/sensorpi/input/onewire"
 	"github.com/nathan-osman/sensorpi/manager"
-	_ "github.com/nathan-osman/sensorpi/output/console"
-	_ "github.com/nathan-osman/sensorpi/output/influxdb"
+	_ "github.com/nathan-osman/sensorpi/plugins/console"
+	_ "github.com/nathan-osman/sensorpi/plugins/grove-moisture"
+	_ "github.com/nathan-osman/sensorpi/plugins/influxdb"
+	_ "github.com/nathan-osman/sensorpi/plugins/onewire"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )

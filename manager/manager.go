@@ -2,6 +2,7 @@ package manager
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -10,23 +11,29 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type managerPluginAndParams struct {
+type managerInputPluginAndParams struct {
 	Name       string
-	Plugin     plugin.Plugin
+	Plugin     plugin.InputPlugin
+	Parameters *yaml.Node
+}
+
+type managerOutputPluginAndParams struct {
+	Name       string
+	Plugin     plugin.OutputPlugin
 	Parameters *yaml.Node
 }
 
 type managerTask struct {
 	Interval time.Duration
 	NextRun  time.Time
-	Input    *managerPluginAndParams
-	Outputs  []*managerPluginAndParams
+	Input    *managerInputPluginAndParams
+	Outputs  []*managerOutputPluginAndParams
 }
 
 // Manager parses a configuration file and initializes inputs and outputs
 // accordingly.
 type Manager struct {
-	plugins    map[string]plugin.Plugin
+	plugins    map[string]any
 	tasks      []*managerTask
 	closeChan  chan any
 	closedChan chan any
@@ -48,7 +55,7 @@ type configRoot struct {
 	Connections []*configConnection  `yaml:"connections"`
 }
 
-func (m *Manager) getPlugin(name string, node *yaml.Node) (plugin.Plugin, error) {
+func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
 	if p := m.plugins[name]; p != nil {
 		return p, nil
 	}
@@ -121,7 +128,7 @@ func New(filename string) (*Manager, error) {
 	var (
 		now = time.Now()
 		m   = &Manager{
-			plugins:    make(map[string]plugin.Plugin),
+			plugins:    make(map[string]any),
 			closeChan:  make(chan any),
 			closedChan: make(chan any),
 		}
@@ -137,17 +144,25 @@ func New(filename string) (*Manager, error) {
 
 	// Enumerate the connections and create tasks for each of them
 	for _, c := range root.Connections {
-		p, err := m.getPlugin(c.Input.Plugin, nil)
+		v, err := m.getPlugin(c.Input.Plugin, nil)
 		if err != nil {
 			return nil, err
 		}
-		outputPlugins := []*managerPluginAndParams{}
+		p, ok := v.(plugin.InputPlugin)
+		if !ok {
+			return nil, fmt.Errorf("%s is not an input plugin", c.Input.Plugin)
+		}
+		outputPlugins := []*managerOutputPluginAndParams{}
 		for _, output := range c.Outputs {
-			p, err := m.getPlugin(output.Plugin, nil)
+			v, err := m.getPlugin(output.Plugin, nil)
 			if err != nil {
 				return nil, err
 			}
-			outputPlugins = append(outputPlugins, &managerPluginAndParams{
+			p, ok := v.(plugin.OutputPlugin)
+			if !ok {
+				return nil, fmt.Errorf("%s is not an output plugin", output.Plugin)
+			}
+			outputPlugins = append(outputPlugins, &managerOutputPluginAndParams{
 				Name:       output.Plugin,
 				Plugin:     p,
 				Parameters: &output.Parameters,
@@ -156,7 +171,7 @@ func New(filename string) (*Manager, error) {
 		m.tasks = append(m.tasks, &managerTask{
 			Interval: c.Interval,
 			NextRun:  now,
-			Input: &managerPluginAndParams{
+			Input: &managerInputPluginAndParams{
 				Name:       c.Input.Plugin,
 				Plugin:     p,
 				Parameters: &c.Input.Parameters,

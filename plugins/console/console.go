@@ -15,17 +15,9 @@ type outputParams struct {
 }
 
 func init() {
-	plugin.Register("console", func(node *yaml.Node) (plugin.Plugin, error) {
+	plugin.Register("console", func(node *yaml.Node) (any, error) {
 		return &Console{}, nil
 	})
-}
-
-func (c *Console) IsInput() bool {
-	return false
-}
-
-func (c *Console) IsOutput() bool {
-	return true
 }
 
 func (c *Console) Read(*yaml.Node) (float64, error) {

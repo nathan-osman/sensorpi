@@ -19,7 +19,7 @@ type inputParams struct {
 }
 
 func init() {
-	plugin.Register("onewire", func(node *yaml.Node) (plugin.Plugin, error) {
+	plugin.Register("onewire", func(node *yaml.Node) (any, error) {
 		return &OneWire{}, nil
 	})
 }

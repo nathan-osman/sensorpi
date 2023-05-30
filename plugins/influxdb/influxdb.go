@@ -30,7 +30,7 @@ type outputParams struct {
 }
 
 func init() {
-	plugin.Register("influxdb", func(node *yaml.Node) (plugin.Plugin, error) {
+	plugin.Register("influxdb", func(node *yaml.Node) (any, error) {
 		cfg := &outputConfig{}
 		if err := node.Decode(cfg); err != nil {
 			return nil, err
