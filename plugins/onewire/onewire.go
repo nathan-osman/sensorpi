@@ -24,14 +24,6 @@ func init() {
 	})
 }
 
-func (o *OneWire) IsInput() bool {
-	return true
-}
-
-func (o *OneWire) IsOutput() bool {
-	return false
-}
-
 func (o *OneWire) Read(node *yaml.Node) (float64, error) {
 	params := &inputParams{}
 	if err := node.Decode(params); err != nil {
@@ -52,9 +44,3 @@ func (o *OneWire) Read(node *yaml.Node) (float64, error) {
 	}
 	return float64(v) / 1000, nil
 }
-
-func (o *OneWire) Write(float64, *yaml.Node) error {
-	return nil
-}
-
-func (o *OneWire) Close() {}

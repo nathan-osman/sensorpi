@@ -50,18 +50,6 @@ func init() {
 	})
 }
 
-func (i *InfluxDB) IsInput() bool {
-	return false
-}
-
-func (i *InfluxDB) IsOutput() bool {
-	return true
-}
-
-func (i *InfluxDB) Read(*yaml.Node) (float64, error) {
-	return 0, nil
-}
-
 func (i *InfluxDB) Write(v float64, node *yaml.Node) error {
 	params := &outputParams{}
 	if err := node.Decode(params); err != nil {

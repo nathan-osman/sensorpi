@@ -20,10 +20,6 @@ func init() {
 	})
 }
 
-func (c *Console) Read(*yaml.Node) (float64, error) {
-	return 0, nil
-}
-
 func (c *Console) Write(v float64, node *yaml.Node) error {
 	params := &outputParams{}
 	if err := node.Decode(params); err != nil {
@@ -36,5 +32,3 @@ func (c *Console) Write(v float64, node *yaml.Node) error {
 	fmt.Printf("%s: %f\n", label, v)
 	return nil
 }
-
-func (c *Console) Close() {}

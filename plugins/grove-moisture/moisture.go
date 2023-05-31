@@ -41,14 +41,6 @@ func init() {
 	})
 }
 
-func (m *Moisture) IsInput() bool {
-	return true
-}
-
-func (m *Moisture) IsOutput() bool {
-	return false
-}
-
 func (m *Moisture) Read(node *yaml.Node) (float64, error) {
 	params := &inputParams{}
 	if err := node.Decode(params); err != nil {
@@ -64,9 +56,3 @@ func (m *Moisture) Read(node *yaml.Node) (float64, error) {
 	v := binary.LittleEndian.Uint16(r)
 	return float64(v), nil
 }
-
-func (m *Moisture) Write(float64, *yaml.Node) error {
-	return nil
-}
-
-func (m *Moisture) Close() {}
