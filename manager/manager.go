@@ -50,9 +50,15 @@ type configConnection struct {
 	Interval time.Duration   `yaml:"interval"`
 }
 
+type configTrigger struct {
+	configPlugin
+	Actions []*configPlugin `yaml:"actions"`
+}
+
 type configRoot struct {
 	Plugins     map[string]yaml.Node `yaml:"plugins"`
 	Connections []*configConnection  `yaml:"connections"`
+	Triggers    []*configTrigger     `yaml:"triggers"`
 }
 
 func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
@@ -178,6 +184,11 @@ func New(filename string) (*Manager, error) {
 			},
 			Outputs: outputPlugins,
 		})
+	}
+
+	// Enumerate the triggers
+	for _, t := range root.Triggers {
+		//...
 	}
 
 	// Abort if there are no tasks

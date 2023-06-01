@@ -7,10 +7,12 @@ import (
 	"syscall"
 
 	"github.com/nathan-osman/sensorpi/manager"
+	_ "github.com/nathan-osman/sensorpi/plugins/command"
 	_ "github.com/nathan-osman/sensorpi/plugins/console"
 	_ "github.com/nathan-osman/sensorpi/plugins/grove-moisture"
 	_ "github.com/nathan-osman/sensorpi/plugins/influxdb"
 	_ "github.com/nathan-osman/sensorpi/plugins/onewire"
+	_ "github.com/nathan-osman/sensorpi/plugins/timer"
 	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )
