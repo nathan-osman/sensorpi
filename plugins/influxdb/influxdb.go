@@ -24,7 +24,7 @@ type outputConfig struct {
 	Database string `yaml:"database"`
 }
 
-type outputParams struct {
+type params struct {
 	Name string            `yaml:"name"`
 	Tags map[string]string `yaml:"tags"`
 }
@@ -50,8 +50,8 @@ func init() {
 	})
 }
 
-func (i *InfluxDB) Write(v float64, node *yaml.Node) error {
-	params := &outputParams{}
+func (i *InfluxDB) send(v float64, node *yaml.Node) error {
+	params := &params{}
 	if err := node.Decode(params); err != nil {
 		return err
 	}
@@ -64,6 +64,14 @@ func (i *InfluxDB) Write(v float64, node *yaml.Node) error {
 		time.Now(),
 	)
 	return i.api.WritePoint(context.Background(), p)
+}
+
+func (i *InfluxDB) Write(v float64, node *yaml.Node) error {
+	return i.send(v, node)
+}
+
+func (i *InfluxDB) Run(v float64, node *yaml.Node) error {
+	return i.send(v, node)
 }
 
 func (i *InfluxDB) Close() {

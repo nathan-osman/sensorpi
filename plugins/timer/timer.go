@@ -21,19 +21,19 @@ func init() {
 	})
 }
 
-func (t *Timer) Watch(ctx context.Context, node *yaml.Node) error {
+func (t *Timer) Watch(ctx context.Context, node *yaml.Node) (float64, error) {
 	params := &triggerParams{}
 	if err := node.Decode(params); err != nil {
-		return err
+		return 0, err
 	}
 	d, err := time.ParseDuration(params.Interval)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	select {
 	case <-time.After(d):
-		return nil
+		return 0, nil
 	case <-ctx.Done():
-		return context.Canceled
+		return 0, context.Canceled
 	}
 }
