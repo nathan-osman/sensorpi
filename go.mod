@@ -6,10 +6,10 @@ require (
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/nathan-osman/go-sunrise v1.1.0
 	github.com/rs/zerolog v1.29.1
-	github.com/urfave/cli/v2 v2.25.1
+	github.com/urfave/cli/v2 v2.25.5
 	gopkg.in/yaml.v3 v3.0.1
 	periph.io/x/conn/v3 v3.7.0
-	periph.io/x/host/v3 v3.8.0
+	periph.io/x/host/v3 v3.8.2
 )
 
 require (
