@@ -25,6 +25,12 @@ type managerOutputPluginAndParams struct {
 	Parameters *yaml.Node
 }
 
+type managerActionPluginAndParams struct {
+	Name       string
+	Plugin     plugin.ActionPlugin
+	Parameters *yaml.Node
+}
+
 type managerTask struct {
 	Interval time.Duration
 	NextRun  time.Time
@@ -202,19 +208,40 @@ func New(filename string) (*Manager, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s is not a trigger plugin", t.Plugin)
 		}
+		actions := []*managerActionPluginAndParams{}
+		for _, action := range t.Actions {
+			v, err := m.getPlugin(action.Plugin, nil)
+			if err != nil {
+				return nil, err
+			}
+			p, ok := v.(plugin.ActionPlugin)
+			if !ok {
+				return nil, fmt.Errorf("%s is not an action plugin", action.Plugin)
+			}
+			actions = append(actions, &managerActionPluginAndParams{
+				Name:       action.Plugin,
+				Plugin:     p,
+				Parameters: &action.Parameters,
+			})
+		}
 		m.wg.Add(1)
-		go func(params *yaml.Node) {
+		go func(t *configTrigger) {
 			defer m.wg.Done()
 			for {
-				if err := p.Watch(ctx, params); err != nil {
+				v, err := p.Watch(ctx, &t.Parameters)
+				if err != nil {
 					if err == context.Canceled {
 						return
 					} else {
 						log.Error().Msg(err.Error())
 					}
 				}
+				log.Debug().Msgf("triggered %f from %s", v, t.Plugin)
+				for _, a := range actions {
+					a.Plugin.Run(v, a.Parameters)
+				}
 			}
-		}(&t.Parameters)
+		}(t)
 	}
 
 	// Abort if there are no tasks

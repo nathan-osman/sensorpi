@@ -23,13 +23,16 @@ type OutputPlugin interface {
 // TriggerPlugin represents a plugin that notifies when an event occurs.
 type TriggerPlugin interface {
 
-	// Watch should wait until triggered or the context is cancelled.
-	Watch(context.Context, *yaml.Node) error
+	// Watch should wait until triggered or the context is cancelled. If no
+	// error occurred, a float64 should be returned. If the context was
+	// cancelled, context.Canceled should be returned.
+	Watch(context.Context, *yaml.Node) (float64, error)
 }
 
-// ActionPlugin represents a plugin that responds to a trigger.
+// ActionPlugin represents a plugin that responds to a trigger or a specific
+// condition when reading values from an InputPlugin.
 type ActionPlugin interface {
 
 	// Run invokes the action.
-	Run(*yaml.Node) error
+	Run(float64, *yaml.Node) error
 }
