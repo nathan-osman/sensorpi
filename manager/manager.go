@@ -1,9 +1,11 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/nathan-osman/sensorpi/plugin"
@@ -35,6 +37,8 @@ type managerTask struct {
 type Manager struct {
 	plugins    map[string]any
 	tasks      []*managerTask
+	wg         sync.WaitGroup
+	cancelFunc context.CancelFunc
 	closeChan  chan any
 	closedChan chan any
 }
@@ -132,9 +136,11 @@ func New(filename string) (*Manager, error) {
 	}
 
 	var (
-		now = time.Now()
-		m   = &Manager{
+		now             = time.Now()
+		ctx, cancelFunc = context.WithCancel(context.Background())
+		m               = &Manager{
 			plugins:    make(map[string]any),
+			cancelFunc: cancelFunc,
 			closeChan:  make(chan any),
 			closedChan: make(chan any),
 		}
@@ -188,7 +194,27 @@ func New(filename string) (*Manager, error) {
 
 	// Enumerate the triggers
 	for _, t := range root.Triggers {
-		//...
+		v, err := m.getPlugin(t.Plugin, nil)
+		if err != nil {
+			return nil, err
+		}
+		p, ok := v.(plugin.TriggerPlugin)
+		if !ok {
+			return nil, fmt.Errorf("%s is not a trigger plugin", t.Plugin)
+		}
+		m.wg.Add(1)
+		go func(params *yaml.Node) {
+			defer m.wg.Done()
+			for {
+				if err := p.Watch(ctx, params); err != nil {
+					if err == context.Canceled {
+						return
+					} else {
+						log.Error().Msg(err.Error())
+					}
+				}
+			}
+		}(&t.Parameters)
 	}
 
 	// Abort if there are no tasks
@@ -202,8 +228,16 @@ func New(filename string) (*Manager, error) {
 	return m, nil
 }
 
-// Close shuts down the manager
+// Close shuts down the manager.
 func (m *Manager) Close() {
+
+	// Shut down the task goroutine
 	close(m.closeChan)
+
+	// Shut down all of the goroutine monitoring triggers
+	m.cancelFunc()
+
+	// Wait for goroutines to finish
 	<-m.closedChan
+	m.wg.Wait()
 }
