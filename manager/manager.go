@@ -25,12 +25,6 @@ type managerOutputPluginAndParams struct {
 	Parameters *yaml.Node
 }
 
-type managerActionPluginAndParams struct {
-	Name       string
-	Plugin     plugin.ActionPlugin
-	Parameters *yaml.Node
-}
-
 type managerTask struct {
 	Interval time.Duration
 	NextRun  time.Time
@@ -54,21 +48,20 @@ type configPlugin struct {
 	Parameters yaml.Node `yaml:"parameters"`
 }
 
-type configConnection struct {
-	Input    *configPlugin   `yaml:"input"`
-	Outputs  []*configPlugin `yaml:"outputs"`
-	Interval time.Duration   `yaml:"interval"`
+type configPluginWithOutputs struct {
+	configPlugin
+	Outputs []*configPlugin `yaml:"outputs"`
 }
 
-type configTrigger struct {
-	configPlugin
-	Actions []*configPlugin `yaml:"actions"`
+type configInput struct {
+	configPluginWithOutputs
+	Interval time.Duration `yaml:"interval"`
 }
 
 type configRoot struct {
-	Plugins     map[string]yaml.Node `yaml:"plugins"`
-	Connections []*configConnection  `yaml:"connections"`
-	Triggers    []*configTrigger     `yaml:"triggers"`
+	Plugins  map[string]yaml.Node       `yaml:"plugins"`
+	Inputs   []*configInput             `yaml:"inputs"`
+	Triggers []*configPluginWithOutputs `yaml:"triggers"`
 }
 
 func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
@@ -160,18 +153,18 @@ func New(filename string) (*Manager, error) {
 		}
 	}
 
-	// Enumerate the connections and create tasks for each of them
-	for _, c := range root.Connections {
-		v, err := m.getPlugin(c.Input.Plugin, nil)
+	// Enumerate the inputs and create tasks for each of them
+	for _, i := range root.Inputs {
+		v, err := m.getPlugin(i.Plugin, nil)
 		if err != nil {
 			return nil, err
 		}
 		p, ok := v.(plugin.InputPlugin)
 		if !ok {
-			return nil, fmt.Errorf("%s is not an input plugin", c.Input.Plugin)
+			return nil, fmt.Errorf("%s is not an input plugin", i.Plugin)
 		}
 		outputPlugins := []*managerOutputPluginAndParams{}
-		for _, output := range c.Outputs {
+		for _, output := range i.Outputs {
 			v, err := m.getPlugin(output.Plugin, nil)
 			if err != nil {
 				return nil, err
@@ -187,12 +180,12 @@ func New(filename string) (*Manager, error) {
 			})
 		}
 		m.tasks = append(m.tasks, &managerTask{
-			Interval: c.Interval,
+			Interval: i.Interval,
 			NextRun:  now,
 			Input: &managerInputPluginAndParams{
-				Name:       c.Input.Plugin,
+				Name:       i.Plugin,
 				Plugin:     p,
-				Parameters: &c.Input.Parameters,
+				Parameters: &i.Parameters,
 			},
 			Outputs: outputPlugins,
 		})
@@ -208,24 +201,24 @@ func New(filename string) (*Manager, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s is not a trigger plugin", t.Plugin)
 		}
-		actions := []*managerActionPluginAndParams{}
-		for _, action := range t.Actions {
+		actions := []*managerOutputPluginAndParams{}
+		for _, action := range t.Outputs {
 			v, err := m.getPlugin(action.Plugin, nil)
 			if err != nil {
 				return nil, err
 			}
-			p, ok := v.(plugin.ActionPlugin)
+			p, ok := v.(plugin.OutputPlugin)
 			if !ok {
-				return nil, fmt.Errorf("%s is not an action plugin", action.Plugin)
+				return nil, fmt.Errorf("%s is not an output plugin", action.Plugin)
 			}
-			actions = append(actions, &managerActionPluginAndParams{
+			actions = append(actions, &managerOutputPluginAndParams{
 				Name:       action.Plugin,
 				Plugin:     p,
 				Parameters: &action.Parameters,
 			})
 		}
 		m.wg.Add(1)
-		go func(t *configTrigger) {
+		go func(t *configPluginWithOutputs) {
 			defer m.wg.Done()
 			for {
 				v, err := p.Watch(ctx, &t.Parameters)
@@ -238,7 +231,9 @@ func New(filename string) (*Manager, error) {
 				}
 				log.Debug().Msgf("triggered %f from %s", v, t.Plugin)
 				for _, a := range actions {
-					a.Plugin.Run(v, a.Parameters)
+					if err := a.Plugin.Write(v, a.Parameters); err != nil {
+						log.Error().Msg(err.Error())
+					}
 				}
 			}
 		}(t)

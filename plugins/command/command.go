@@ -10,7 +10,7 @@ import (
 // Command executes a command as an action.
 type Command struct{}
 
-type actionParams struct {
+type params struct {
 	Name string   `yaml:"name"`
 	Args []string `yaml:"arguments"`
 }
@@ -21,8 +21,8 @@ func init() {
 	})
 }
 
-func (c *Command) Run(node *yaml.Node) error {
-	params := &actionParams{}
+func (c *Command) Write(v float64, node *yaml.Node) error {
+	params := &params{}
 	if err := node.Decode(params); err != nil {
 		return err
 	}

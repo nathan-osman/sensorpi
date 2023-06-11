@@ -5,7 +5,33 @@
 
 This handy little program is designed to monitor sensors connected to a Raspberry Pi and react to the data based on a configuration file.
 
-For example, a configuration file for reading temperature data from a [1-Wire](https://en.wikipedia.org/wiki/1-Wire) sensor connected to GPIO 4 and sending the data to [InfluxDB](https://en.wikipedia.org/wiki/InfluxDB) every five minutes would look like this:
+### Overview
+
+There are several different types of plugins available:
+
+- **trigger plugins** wait for something to happen (motion detected, etc.)
+- **input plugins** read a value at a regular interval (such as temperature, etc.)
+- **output plugins** do something with a value (write to database, etc.)
+
+In order to do something useful, input and trigger plugins need to be connected to output plugins. For example, you might connect an input plugin for reading temperature values to an output plugin that sends the values to a database.
+
+### Plugin List
+
+This is an exhaustive list of plugins available and a brief description of how they can be used.
+
+| Name           | Type           | Description                  |
+|----------------|----------------|------------------------------|
+| command        | output         | run a command                |
+| console        | output         | output to the console        |
+| daylight       | input, trigger | sunrise / sunset times       |
+| grove-moisture | input          | read moisture values         |
+| influxdb       | output         | write to InfluxDB            |
+| onewire        | input          | read from 1-Wire sensor      |
+| timer          | trigger        | trigger at regular intervals |
+
+### Example
+
+A simple configuration file for reading temperature data from a [1-Wire](https://en.wikipedia.org/wiki/1-Wire) sensor connected to GPIO 4 and sending the data to [InfluxDB](https://en.wikipedia.org/wiki/InfluxDB) every five minutes would look like this:
 
 ```yaml
 plugins:
@@ -14,11 +40,10 @@ plugins:
     username: username
     password: password
     database: example
-connections:
-  - input:
-      plugin: onewire
-      parameters:
-        device: 28-0516a43c9fff
+inputs:
+  - plugin: onewire
+    parameters:
+      device: 28-0516a43c9fff
     outputs:
       - plugin: influxdb
         parameters:

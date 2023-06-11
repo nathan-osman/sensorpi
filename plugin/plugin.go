@@ -28,11 +28,3 @@ type TriggerPlugin interface {
 	// cancelled, context.Canceled should be returned.
 	Watch(context.Context, *yaml.Node) (float64, error)
 }
-
-// ActionPlugin represents a plugin that responds to a trigger or a specific
-// condition when reading values from an InputPlugin.
-type ActionPlugin interface {
-
-	// Run invokes the action.
-	Run(float64, *yaml.Node) error
-}
