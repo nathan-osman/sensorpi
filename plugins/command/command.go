@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"os/exec"
 
 	"github.com/nathan-osman/sensorpi/plugin"
@@ -26,5 +27,12 @@ func (c *Command) Write(v float64, node *yaml.Node) error {
 	if err := node.Decode(params); err != nil {
 		return err
 	}
-	return exec.Command(params.Name, params.Args...).Run()
+	if err := exec.Command(params.Name, params.Args...).Run(); err != nil {
+		e, ok := err.(*exec.ExitError)
+		if ok {
+			return errors.New(string(e.Stderr))
+		}
+		return err
+	}
+	return nil
 }
