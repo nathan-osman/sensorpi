@@ -54,6 +54,7 @@ func (d *Daylight) Watch(ctx context.Context, node *yaml.Node) (float64, error) 
 	var (
 		tNow   = time.Now()
 		tNext  time.Time
+		v      float64
 		sr, ss = sunrise.SunriseSunset(
 			params.Latitude,
 			params.Longitude,
@@ -65,6 +66,7 @@ func (d *Daylight) Watch(ctx context.Context, node *yaml.Node) (float64, error) 
 	switch {
 	case sr.After(tNow):
 		tNext = sr
+		v = 1
 	case ss.After(tNow):
 		tNext = ss
 	default:
@@ -79,7 +81,7 @@ func (d *Daylight) Watch(ctx context.Context, node *yaml.Node) (float64, error) 
 	}
 	select {
 	case <-time.After(tNext.Sub(tNow)):
-		return 0, nil
+		return v, nil
 	case <-ctx.Done():
 		return 0, context.Canceled
 	}
