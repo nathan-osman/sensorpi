@@ -30,7 +30,10 @@ func (c *Command) Write(v float64, node *yaml.Node) error {
 	if err := exec.Command(params.Name, params.Args...).Run(); err != nil {
 		e, ok := err.(*exec.ExitError)
 		if ok {
-			return errors.New(string(e.Stderr))
+			s := string(e.Stderr)
+			if len(s) != 0 {
+				return errors.New(s)
+			}
 		}
 		return err
 	}
