@@ -43,25 +43,27 @@ type Manager struct {
 	closedChan chan any
 }
 
-type configPlugin struct {
-	Plugin     string    `yaml:"plugin"`
-	Parameters yaml.Node `yaml:"parameters"`
-}
-
-type configPluginWithOutputs struct {
-	configPlugin
-	Outputs []*configPlugin `yaml:"outputs"`
-}
-
-type configInput struct {
-	configPluginWithOutputs
-	Interval time.Duration `yaml:"interval"`
-}
+// TODO: there is a lot of duplication but composition requires exported types
 
 type configRoot struct {
-	Plugins  map[string]yaml.Node       `yaml:"plugins"`
-	Inputs   []*configInput             `yaml:"inputs"`
-	Triggers []*configPluginWithOutputs `yaml:"triggers"`
+	Plugins map[string]yaml.Node `yaml:"plugins"`
+	Inputs  []*struct {
+		Plugin     string    `yaml:"plugin"`
+		Parameters yaml.Node `yaml:"parameters"`
+		Outputs    []*struct {
+			Plugin     string    `yaml:"plugin"`
+			Parameters yaml.Node `yaml:"parameters"`
+		} `yaml:"outputs"`
+		Interval time.Duration `yaml:"interval"`
+	} `yaml:"inputs"`
+	Triggers []*struct {
+		Plugin     string    `yaml:"plugin"`
+		Parameters yaml.Node `yaml:"parameters"`
+		Outputs    []*struct {
+			Plugin     string    `yaml:"plugin"`
+			Parameters yaml.Node `yaml:"parameters"`
+		} `yaml:"outputs"`
+	} `yaml:"triggers"`
 }
 
 func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
@@ -218,10 +220,10 @@ func New(filename string) (*Manager, error) {
 			})
 		}
 		m.wg.Add(1)
-		go func(t *configPluginWithOutputs) {
+		go func(name string, node *yaml.Node) {
 			defer m.wg.Done()
 			for {
-				v, err := p.Watch(ctx, &t.Parameters)
+				v, err := p.Watch(ctx, node)
 				if err != nil {
 					if err == context.Canceled {
 						return
@@ -229,14 +231,14 @@ func New(filename string) (*Manager, error) {
 						log.Error().Msg(err.Error())
 					}
 				}
-				log.Debug().Msgf("triggered %f from %s", v, t.Plugin)
+				log.Debug().Msgf("triggered %f from %s", v, name)
 				for _, a := range actions {
 					if err := a.Plugin.Write(v, a.Parameters); err != nil {
 						log.Error().Msg(err.Error())
 					}
 				}
 			}
-		}(t)
+		}(t.Plugin, &t.Parameters)
 	}
 
 	// Abort if there are no tasks
