@@ -12,6 +12,7 @@ import (
 	_ "github.com/nathan-osman/sensorpi/plugins/daylight"
 	_ "github.com/nathan-osman/sensorpi/plugins/grove-moisture"
 	_ "github.com/nathan-osman/sensorpi/plugins/influxdb"
+	_ "github.com/nathan-osman/sensorpi/plugins/nut"
 	_ "github.com/nathan-osman/sensorpi/plugins/onewire"
 	_ "github.com/nathan-osman/sensorpi/plugins/timer"
 	"github.com/rs/zerolog"
