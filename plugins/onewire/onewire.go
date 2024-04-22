@@ -2,7 +2,7 @@ package onewire
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -34,7 +34,7 @@ func (o *OneWire) Read(node *yaml.Node) (float64, error) {
 		return 0, err
 	}
 	defer f.Close()
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return 0, err
 	}
