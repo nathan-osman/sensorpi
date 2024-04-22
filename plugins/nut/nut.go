@@ -36,11 +36,13 @@ func init() {
 		if err := node.Decode(params); err != nil {
 			return 0, err
 		}
-		return nutclient.New(&nutclient.Config{
-			Addr:         params.Addr,
-			Name:         params.Name,
-			PollInterval: params.PollInterval,
-		}), nil
+		return &Nut{
+			client: nutclient.New(&nutclient.Config{
+				Addr:         params.Addr,
+				Name:         params.Name,
+				PollInterval: params.PollInterval,
+			}),
+		}, nil
 	})
 }
 
