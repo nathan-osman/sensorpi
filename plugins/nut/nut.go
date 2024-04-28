@@ -5,15 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nathan-osman/nutclient"
+	"github.com/nathan-osman/nutclient/v2"
 	"github.com/nathan-osman/sensorpi/plugin"
 	"gopkg.in/yaml.v3"
 )
 
-var (
-	errNoStatusAvailable = errors.New("no status available")
-	errKeyNotFound       = errors.New("key not found")
-)
+var errKeyNotFound = errors.New("key not found")
 
 // Nut reads data from a NUT server.
 type Nut struct {
@@ -51,11 +48,11 @@ func (n *Nut) Read(node *yaml.Node) (float64, error) {
 	if err := node.Decode(params); err != nil {
 		return 0, err
 	}
-	s := n.client.Status()
-	if s == nil {
-		return 0, errNoStatusAvailable
+	l, err := n.client.Status()
+	if err != nil {
+		return 0, err
 	}
-	v, ok := s[params.Key]
+	v, ok := l[params.Key]
 	if !ok {
 		return 0, errKeyNotFound
 	}
