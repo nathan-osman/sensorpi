@@ -35,9 +35,8 @@ func init() {
 		}
 		return &Nut{
 			client: nutclient.New(&nutclient.Config{
-				Addr:         params.Addr,
-				Name:         params.Name,
-				PollInterval: params.PollInterval,
+				Addr: params.Addr,
+				Name: params.Name,
 			}),
 		}, nil
 	})
