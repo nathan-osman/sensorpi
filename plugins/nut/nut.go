@@ -1,20 +1,18 @@
 package nut
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
-	"github.com/nathan-osman/nutclient/v2"
+	"github.com/nathan-osman/nutclient/v3"
 	"github.com/nathan-osman/sensorpi/plugin"
 	"gopkg.in/yaml.v3"
 )
 
-var errKeyNotFound = errors.New("key not found")
-
 // Nut reads data from a NUT server.
 type Nut struct {
 	client *nutclient.Client
+	name   string
 }
 
 type pluginParams struct {
@@ -35,9 +33,10 @@ func init() {
 		}
 		return &Nut{
 			client: nutclient.New(&nutclient.Config{
-				Addr: params.Addr,
-				Name: params.Name,
+				Addr:              params.Addr,
+				KeepAliveInterval: 30 * time.Second,
 			}),
+			name: params.Name,
 		}, nil
 	})
 }
@@ -47,13 +46,9 @@ func (n *Nut) Read(node *yaml.Node) (float64, error) {
 	if err := node.Decode(params); err != nil {
 		return 0, err
 	}
-	l, err := n.client.Status()
+	v, err := n.client.Get("VAR", n.name, params.Key)
 	if err != nil {
 		return 0, err
-	}
-	v, ok := l[params.Key]
-	if !ok {
-		return 0, errKeyNotFound
 	}
 	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {

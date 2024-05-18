@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/influxdata/influxdb-client-go/v2 v2.13.0
 	github.com/nathan-osman/go-sunrise v1.1.0
-	github.com/nathan-osman/nutclient/v2 v2.0.3
+	github.com/nathan-osman/nutclient/v3 v3.0.0
 	github.com/rs/zerolog v1.32.0
 	github.com/urfave/cli/v2 v2.27.2
 	gopkg.in/yaml.v3 v3.0.1
