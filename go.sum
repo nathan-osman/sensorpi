@@ -21,10 +21,8 @@ github.com/mattn/go-isatty v0.0.19 h1:JITubQf0MOLdlGRuRq+jtsDlekdYPia9ZFsB8h/APP
 github.com/mattn/go-isatty v0.0.19/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/nathan-osman/go-sunrise v1.1.0 h1:ZqZmtmtzs8Os/DGQYi0YMHpuUqR/iRoJK+wDO0wTCw8=
 github.com/nathan-osman/go-sunrise v1.1.0/go.mod h1:RcWqhT+5ShCZDev79GuWLayetpJp78RSjSWxiDowmlM=
-github.com/nathan-osman/nutclient/v2 v2.0.3 h1:LUbzLdm3E+DRUMktmITDWmJPoFpmoHSUfpchUOGMEJc=
-github.com/nathan-osman/nutclient/v2 v2.0.3/go.mod h1:HQK0l7PI8w4X/YCVxWXe8eeBkrMrMZz8r7UGq9CyaGM=
-github.com/nathan-osman/nutclient/v3 v3.0.0 h1:yAw95PKPENHTRbhBDn7CfTHZRPlqkK5oe2tN1KCP2fU=
-github.com/nathan-osman/nutclient/v3 v3.0.0/go.mod h1:AzQ6MexKuUxay8SQL4EQ6jW5fZaUERWMx7KmYyYeRzc=
+github.com/nathan-osman/nutclient/v3 v3.0.1 h1:ZRGp+tKUKauab8k2zQeeY1kzksHbb6uF1Wqte0wVUXQ=
+github.com/nathan-osman/nutclient/v3 v3.0.1/go.mod h1:AzQ6MexKuUxay8SQL4EQ6jW5fZaUERWMx7KmYyYeRzc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
