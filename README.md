@@ -20,12 +20,13 @@ In order to do something useful, input and trigger plugins need to be connected 
 This is an exhaustive list of plugins available and a brief description of how they can be used.
 
 | Name           | Type           | Description                  |
-|----------------|----------------|------------------------------|
+| -------------- | -------------- | ---------------------------- |
 | command        | output         | run a command                |
 | console        | output         | output to the console        |
 | daylight       | input, trigger | sunrise / sunset times       |
 | grove-moisture | input          | read moisture values         |
 | influxdb       | output         | write to InfluxDB            |
+| mqtt           | output         | publish to MQTT topic        |
 | nut            | input          | read values from NUT server  |
 | onewire        | input          | read from 1-Wire sensor      |
 | timer          | trigger        | trigger at regular intervals |
