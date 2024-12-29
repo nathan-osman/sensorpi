@@ -58,7 +58,12 @@ func (m *Mqtt) Write(v float64, node *yaml.Node) error {
 	if err := node.Decode(params); err != nil {
 		return err
 	}
-	if t := m.client.Publish(params.Topic, params.Qos, params.Retain, v); t.Wait() && t.Error() != nil {
+	if t := m.client.Publish(
+		params.Topic,
+		params.Qos,
+		params.Retain,
+		fmt.Sprintf("%f", v),
+	); t.Wait() && t.Error() != nil {
 		return t.Error()
 	}
 	return nil
