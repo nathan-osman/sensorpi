@@ -15,7 +15,9 @@ type Mqtt struct {
 }
 
 type outputConfig struct {
-	Addr string `yaml:"addr"`
+	Addr     string `yaml:"addr"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 type params struct {
@@ -34,7 +36,9 @@ func init() {
 			mqtt.NewClientOptions().
 				AddBroker(fmt.Sprintf("tcp://%s", cfg.Addr)).
 				SetClientID("sensorpi").
-				SetKeepAlive(30 * time.Second),
+				SetKeepAlive(30 * time.Second).
+				SetPassword(cfg.Password).
+				SetUsername(cfg.Username),
 		)
 		if t := c.Connect(); t.Wait() && t.Error() != nil {
 			return nil, t.Error()
