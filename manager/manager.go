@@ -165,6 +165,9 @@ func New(filename string) (*Manager, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s is not an input plugin", i.Plugin)
 		}
+		if i.Interval == 0 {
+			return nil, errors.New("interval cannot be zero")
+		}
 		outputPlugins := []*managerOutputPluginAndParams{}
 		for _, output := range i.Outputs {
 			v, err := m.getPlugin(output.Plugin, nil)
