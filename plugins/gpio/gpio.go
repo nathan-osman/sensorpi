@@ -19,11 +19,13 @@ type outputParams struct {
 
 type triggerParams struct {
 	Pin          uint8  `yaml:"pin"`
+	Invert       bool   `yaml:"invert"`
 	PollInterval string `yaml:"poll_interval"`
 }
 
 type triggerData struct {
 	Pin      uint8
+	Invert   bool
 	Duration time.Duration
 }
 
@@ -76,6 +78,7 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	}
 	return &triggerData{
 		Pin:      params.Pin,
+		Invert:   params.Invert,
 		Duration: duration,
 	}, nil
 }
@@ -98,10 +101,17 @@ func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 		select {
 		case <-time.After(d.Duration):
 			if rpio.Pin(d.Pin).EdgeDetected() {
-				if rpio.Pin(d.Pin).Read() == rpio.High {
-					return 1, nil
+				var (
+					isHigh = rpio.Pin(d.Pin).Read() == rpio.High
+					v      float64
+				)
+				if d.Invert {
+					isHigh = !isHigh
 				}
-				return 0, nil
+				if isHigh {
+					v = 1
+				}
+				return v, nil
 			}
 		case <-ctx.Done():
 			return 0, context.Canceled
