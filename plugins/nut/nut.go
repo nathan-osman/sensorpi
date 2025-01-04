@@ -41,11 +41,16 @@ func init() {
 	})
 }
 
-func (n *Nut) Read(node *yaml.Node) (float64, error) {
+func (n *Nut) ReadInit(node *yaml.Node) (any, error) {
 	params := &inputParams{}
 	if err := node.Decode(params); err != nil {
-		return 0, err
+		return nil, err
 	}
+	return params, nil
+}
+
+func (n *Nut) Read(data any) (float64, error) {
+	params := data.(*inputParams)
 	v, err := n.client.Get("VAR", n.name, params.Key)
 	if err != nil {
 		return 0, err

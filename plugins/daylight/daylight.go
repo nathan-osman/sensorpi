@@ -13,7 +13,7 @@ import (
 // trigger, triggers on sunrise and sunset.
 type Daylight struct{}
 
-type params struct {
+type inputTriggerParams struct {
 	Latitude  float64 `yaml:"latitude"`
 	Longitude float64 `yaml:"longitude"`
 }
@@ -24,12 +24,17 @@ func init() {
 	})
 }
 
-func (d *Daylight) Read(node *yaml.Node) (float64, error) {
-	params := &params{}
+func (d *Daylight) ReadInit(node *yaml.Node) (any, error) {
+	params := &inputTriggerParams{}
 	if err := node.Decode(params); err != nil {
-		return 0, err
+		return nil, err
 	}
+	return params, nil
+}
+
+func (d *Daylight) Read(data any) (float64, error) {
 	var (
+		params = data.(*inputTriggerParams)
 		t      = time.Now()
 		sr, ss = sunrise.SunriseSunset(
 			params.Latitude,
@@ -46,12 +51,17 @@ func (d *Daylight) Read(node *yaml.Node) (float64, error) {
 	}
 }
 
-func (d *Daylight) Watch(ctx context.Context, node *yaml.Node) (float64, error) {
-	params := &params{}
+func (d *Daylight) WatchInit(node *yaml.Node) (any, error) {
+	params := &inputTriggerParams{}
 	if err := node.Decode(params); err != nil {
-		return 0, err
+		return nil, err
 	}
+	return params, nil
+}
+
+func (d *Daylight) Watch(data any, ctx context.Context) (float64, error) {
 	var (
+		params = data.(*inputTriggerParams)
 		tNow   = time.Now()
 		tNext  time.Time
 		v      float64

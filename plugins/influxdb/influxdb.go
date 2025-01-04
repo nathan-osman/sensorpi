@@ -17,30 +17,30 @@ type InfluxDB struct {
 	api    api.WriteAPIBlocking
 }
 
-type outputConfig struct {
+type pluginParams struct {
 	URL      string `yaml:"url"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 	Database string `yaml:"database"`
 }
 
-type params struct {
+type outputParams struct {
 	Name string            `yaml:"name"`
 	Tags map[string]string `yaml:"tags"`
 }
 
 func init() {
 	plugin.Register("influxdb", func(node *yaml.Node) (any, error) {
-		cfg := &outputConfig{}
-		if err := node.Decode(cfg); err != nil {
+		params := &pluginParams{}
+		if err := node.Decode(params); err != nil {
 			return nil, err
 		}
 		var (
 			client = influxdb2.NewClient(
-				cfg.URL,
-				fmt.Sprintf("%s:%s", cfg.Username, cfg.Password),
+				params.URL,
+				fmt.Sprintf("%s:%s", params.Username, params.Password),
 			)
-			api = client.WriteAPIBlocking("", cfg.Database)
+			api = client.WriteAPIBlocking("", params.Database)
 		)
 		i := &InfluxDB{
 			client: client,
@@ -50,18 +50,25 @@ func init() {
 	})
 }
 
-func (i *InfluxDB) Write(v float64, node *yaml.Node) error {
-	params := &params{}
+func (i *InfluxDB) WriteInit(node *yaml.Node) (any, error) {
+	params := &outputParams{}
 	if err := node.Decode(params); err != nil {
-		return err
+		return nil, err
 	}
-	p := influxdb2.NewPoint(
-		params.Name,
-		params.Tags,
-		map[string]interface{}{
-			"value": v,
-		},
-		time.Now(),
+	return params, nil
+}
+
+func (i *InfluxDB) Write(data any, v float64) error {
+	var (
+		params = data.(*outputParams)
+		p      = influxdb2.NewPoint(
+			params.Name,
+			params.Tags,
+			map[string]interface{}{
+				"value": v,
+			},
+			time.Now(),
+		)
 	)
 	return i.api.WritePoint(context.Background(), p)
 }

@@ -10,7 +10,7 @@ import (
 // Console provides a simple way to output values to STDOUT.
 type Console struct{}
 
-type params struct {
+type outputParams struct {
 	Label string `yaml:"label"`
 }
 
@@ -20,12 +20,19 @@ func init() {
 	})
 }
 
-func (c *Console) Write(v float64, node *yaml.Node) error {
-	params := &params{}
+func (c *Console) WriteInit(node *yaml.Node) (any, error) {
+	params := &outputParams{}
 	if err := node.Decode(params); err != nil {
-		return err
+		return nil, err
 	}
-	label := params.Label
+	return params, nil
+}
+
+func (c *Console) Write(data any, v float64) error {
+	var (
+		params = data.(*outputParams)
+		label  = params.Label
+	)
 	if label == "" {
 		label = "Value"
 	}

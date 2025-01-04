@@ -14,13 +14,13 @@ type Mqtt struct {
 	client mqtt.Client
 }
 
-type outputConfig struct {
+type pluginParams struct {
 	Addr     string `yaml:"addr"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
-type params struct {
+type outputParams struct {
 	Topic  string `yaml:"topic"`
 	Qos    uint8  `yaml:"qos"`
 	Retain bool   `yaml:"retain"`
@@ -28,17 +28,17 @@ type params struct {
 
 func init() {
 	plugin.Register("mqtt", func(node *yaml.Node) (any, error) {
-		cfg := &outputConfig{}
-		if err := node.Decode(cfg); err != nil {
+		params := &pluginParams{}
+		if err := node.Decode(params); err != nil {
 			return nil, err
 		}
 		c := mqtt.NewClient(
 			mqtt.NewClientOptions().
-				AddBroker(fmt.Sprintf("tcp://%s", cfg.Addr)).
+				AddBroker(fmt.Sprintf("tcp://%s", params.Addr)).
 				SetClientID("sensorpi").
 				SetKeepAlive(30 * time.Second).
-				SetPassword(cfg.Password).
-				SetUsername(cfg.Username),
+				SetPassword(params.Password).
+				SetUsername(params.Username),
 		)
 		if t := c.Connect(); t.Wait() && t.Error() != nil {
 			return nil, t.Error()
@@ -50,14 +50,19 @@ func init() {
 	})
 }
 
-func (m *Mqtt) Write(v float64, node *yaml.Node) error {
-	params := &params{
+func (m *Mqtt) WriteInit(node *yaml.Node) (any, error) {
+	params := &outputParams{
 		Qos:    1,
 		Retain: true,
 	}
 	if err := node.Decode(params); err != nil {
-		return err
+		return nil, err
 	}
+	return params, nil
+}
+
+func (m *Mqtt) Write(data any, v float64) error {
+	params := data.(*outputParams)
 	if t := m.client.Publish(
 		params.Topic,
 		params.Qos,

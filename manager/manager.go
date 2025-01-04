@@ -13,23 +13,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type managerInputPluginAndParams struct {
-	Name       string
-	Plugin     plugin.InputPlugin
-	Parameters *yaml.Node
+type managerInputPluginAndData struct {
+	Name   string
+	Plugin plugin.InputPlugin
+	Data   any
 }
 
-type managerOutputPluginAndParams struct {
-	Name       string
-	Plugin     plugin.OutputPlugin
-	Parameters *yaml.Node
+type managerOutputPluginAndData struct {
+	Name   string
+	Plugin plugin.OutputPlugin
+	Data   any
 }
 
 type managerTask struct {
 	Interval time.Duration
 	NextRun  time.Time
-	Input    *managerInputPluginAndParams
-	Outputs  []*managerOutputPluginAndParams
+	Input    *managerInputPluginAndData
+	Outputs  []*managerOutputPluginAndData
 }
 
 // Manager parses a configuration file and initializes inputs and outputs
@@ -79,13 +79,13 @@ func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
 }
 
 func (m *Manager) doTask(t *managerTask) error {
-	v, err := t.Input.Plugin.Read(t.Input.Parameters)
+	v, err := t.Input.Plugin.Read(t.Input.Data)
 	if err != nil {
 		return err
 	}
 	log.Debug().Msgf("read %f from %s", v, t.Input.Name)
 	for _, o := range t.Outputs {
-		if err := o.Plugin.Write(v, o.Parameters); err != nil {
+		if err := o.Plugin.Write(o.Data, v); err != nil {
 			log.Error().Msg(err.Error())
 		}
 	}
@@ -165,10 +165,14 @@ func New(filename string) (*Manager, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s is not an input plugin", i.Plugin)
 		}
+		inputData, err := p.ReadInit(&i.Parameters)
+		if err != nil {
+			return nil, err
+		}
 		if i.Interval == 0 {
 			return nil, errors.New("interval cannot be zero")
 		}
-		outputPlugins := []*managerOutputPluginAndParams{}
+		outputPlugins := []*managerOutputPluginAndData{}
 		for _, output := range i.Outputs {
 			v, err := m.getPlugin(output.Plugin, nil)
 			if err != nil {
@@ -178,19 +182,23 @@ func New(filename string) (*Manager, error) {
 			if !ok {
 				return nil, fmt.Errorf("%s is not an output plugin", output.Plugin)
 			}
-			outputPlugins = append(outputPlugins, &managerOutputPluginAndParams{
-				Name:       output.Plugin,
-				Plugin:     p,
-				Parameters: &output.Parameters,
+			outputData, err := p.WriteInit(&output.Parameters)
+			if err != nil {
+				return nil, err
+			}
+			outputPlugins = append(outputPlugins, &managerOutputPluginAndData{
+				Name:   output.Plugin,
+				Plugin: p,
+				Data:   outputData,
 			})
 		}
 		m.tasks = append(m.tasks, &managerTask{
 			Interval: i.Interval,
 			NextRun:  now,
-			Input: &managerInputPluginAndParams{
-				Name:       i.Plugin,
-				Plugin:     p,
-				Parameters: &i.Parameters,
+			Input: &managerInputPluginAndData{
+				Name:   i.Plugin,
+				Plugin: p,
+				Data:   inputData,
 			},
 			Outputs: outputPlugins,
 		})
@@ -206,7 +214,11 @@ func New(filename string) (*Manager, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s is not a trigger plugin", t.Plugin)
 		}
-		actions := []*managerOutputPluginAndParams{}
+		triggerData, err := p.WatchInit(&t.Parameters)
+		if err != nil {
+			return nil, err
+		}
+		actions := []*managerOutputPluginAndData{}
 		for _, action := range t.Outputs {
 			v, err := m.getPlugin(action.Plugin, nil)
 			if err != nil {
@@ -216,17 +228,21 @@ func New(filename string) (*Manager, error) {
 			if !ok {
 				return nil, fmt.Errorf("%s is not an output plugin", action.Plugin)
 			}
-			actions = append(actions, &managerOutputPluginAndParams{
-				Name:       action.Plugin,
-				Plugin:     p,
-				Parameters: &action.Parameters,
+			actionData, err := p.WriteInit(&action.Parameters)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, &managerOutputPluginAndData{
+				Name:   action.Plugin,
+				Plugin: p,
+				Data:   actionData,
 			})
 		}
 		m.wg.Add(1)
-		go func(name string, node *yaml.Node) {
+		go func(name string, triggerData any) {
 			defer m.wg.Done()
 			for {
-				v, err := p.Watch(ctx, node)
+				v, err := p.Watch(triggerData, ctx)
 				if err != nil {
 					if err == context.Canceled {
 						return
@@ -236,12 +252,12 @@ func New(filename string) (*Manager, error) {
 				}
 				log.Debug().Msgf("triggered %f from %s", v, name)
 				for _, a := range actions {
-					if err := a.Plugin.Write(v, a.Parameters); err != nil {
+					if err := a.Plugin.Write(a.Data, v); err != nil {
 						log.Error().Msg(err.Error())
 					}
 				}
 			}
-		}(t.Plugin, &t.Parameters)
+		}(t.Plugin, triggerData)
 	}
 
 	// Abort if there are no tasks

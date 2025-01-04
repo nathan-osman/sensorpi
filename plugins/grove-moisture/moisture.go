@@ -21,6 +21,11 @@ type inputParams struct {
 	Channel int `yaml:"channel"`
 }
 
+type inputData struct {
+	W []byte
+	R []byte
+}
+
 func init() {
 	plugin.Register("grove-moisture", func(node *yaml.Node) (any, error) {
 		_, err := host.Init()
@@ -41,18 +46,22 @@ func init() {
 	})
 }
 
-func (m *Moisture) Read(node *yaml.Node) (float64, error) {
+func (m *Moisture) ReadInit(node *yaml.Node) (any, error) {
 	params := &inputParams{}
 	if err := node.Decode(params); err != nil {
+		return nil, err
+	}
+	return &inputData{
+		W: []byte{byte(0x20 + params.Channel)},
+		R: make([]byte, 2),
+	}, nil
+}
+
+func (m *Moisture) Read(data any) (float64, error) {
+	d := data.(*inputData)
+	if err := m.conn.Tx(d.W, d.R); err != nil {
 		return 0, err
 	}
-	var (
-		w = []byte{byte(0x20 + params.Channel)}
-		r = make([]byte, 2)
-	)
-	if err := m.conn.Tx(w, r); err != nil {
-		return 0, err
-	}
-	v := binary.LittleEndian.Uint16(r)
+	v := binary.LittleEndian.Uint16(d.R)
 	return float64(v), nil
 }

@@ -24,11 +24,16 @@ func init() {
 	})
 }
 
-func (o *OneWire) Read(node *yaml.Node) (float64, error) {
+func (o *OneWire) ReadInit(node *yaml.Node) (any, error) {
 	params := &inputParams{}
 	if err := node.Decode(params); err != nil {
 		return 0, err
 	}
+	return params, nil
+}
+
+func (o *OneWire) Read(data any) (float64, error) {
+	params := data.(*inputParams)
 	f, err := os.Open(fmt.Sprintf("/sys/bus/w1/devices/%s/temperature", params.Device))
 	if err != nil {
 		return 0, err

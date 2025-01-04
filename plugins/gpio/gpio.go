@@ -1,3 +1,5 @@
+//go:build !windows
+
 package gpio
 
 import (
@@ -11,14 +13,19 @@ import (
 
 type Gpio struct{}
 
-type writeParams struct {
+type outputParams struct {
 	Pin uint8 `yaml:"pin"`
 }
 
 type triggerParams struct {
-	Pin           uint8         `yaml:"pin"`
-	PollInterval  time.Duration `yaml:"poll_interval"`
-	TriggerOnRise bool          `yaml:"trigger_on_rise"`
+	Pin           uint8  `yaml:"pin"`
+	PollInterval  string `yaml:"poll_interval"`
+	TriggerOnRise bool   `yaml:"trigger_on_rise"`
+}
+
+type triggerData struct {
+	Pin      uint8
+	Duration time.Duration
 }
 
 func init() {
@@ -30,13 +37,20 @@ func init() {
 	})
 }
 
-func (g *Gpio) Write(v float64, node *yaml.Node) error {
-	params := &writeParams{}
+func (g *Gpio) WriteInit(node *yaml.Node) (any, error) {
+	params := &outputParams{}
 	if err := node.Decode(params); err != nil {
-		return err
+		return nil, err
 	}
 	rpio.Pin(params.Pin).Output()
-	state := rpio.High
+	return params, nil
+}
+
+func (g *Gpio) Write(data any, v float64) error {
+	var (
+		params = data.(*outputParams)
+		state  = rpio.High
+	)
 	if v == 0 {
 		state = rpio.Low
 	}
@@ -44,11 +58,35 @@ func (g *Gpio) Write(v float64, node *yaml.Node) error {
 	return nil
 }
 
-func (g *Gpio) Watch(ctx context.Context, node *yaml.Node) (float64, error) {
+func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	params := &triggerParams{}
 	if err := node.Decode(params); err != nil {
-		return 0, err
+		return nil, err
 	}
+	var edge = rpio.FallEdge
+	if params.TriggerOnRise {
+		edge = rpio.RiseEdge
+	}
+	rpio.Pin(params.Pin).Detect(edge)
+	var duration time.Duration
+	if params.PollInterval != "" {
+		d, err := time.ParseDuration(params.PollInterval)
+		if err != nil {
+			return nil, err
+		}
+		duration = d
+	}
+	if duration == 0 {
+		duration = 100 * time.Millisecond
+	}
+	return &triggerData{
+		Pin:      params.Pin,
+		Duration: duration,
+	}, nil
+}
+
+func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
+	d := data.(*triggerData)
 
 	// Pause for 100ms, to avoid phantom triggers from contact bounce
 	select {
@@ -57,22 +95,11 @@ func (g *Gpio) Watch(ctx context.Context, node *yaml.Node) (float64, error) {
 		return 0, context.Canceled
 	}
 
-	// Enable edge detection
-	var edge = rpio.FallEdge
-	if params.TriggerOnRise {
-		edge = rpio.RiseEdge
-	}
-	rpio.Pin(params.Pin).Detect(edge)
-
 	// Poll for rise / fall
-	pollInterval := params.PollInterval
-	if pollInterval == 0 {
-		pollInterval = 100 * time.Millisecond
-	}
 	for {
 		select {
-		case <-time.After(pollInterval):
-			if rpio.Pin(params.Pin).EdgeDetected() {
+		case <-time.After(d.Duration):
+			if rpio.Pin(d.Pin).EdgeDetected() {
 				return 0, nil
 			}
 		case <-ctx.Done():

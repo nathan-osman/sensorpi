@@ -11,7 +11,7 @@ import (
 // Command executes a command as an action.
 type Command struct{}
 
-type params struct {
+type outputParams struct {
 	Name string   `yaml:"name"`
 	Args []string `yaml:"arguments"`
 }
@@ -22,11 +22,16 @@ func init() {
 	})
 }
 
-func (c *Command) Write(v float64, node *yaml.Node) error {
-	params := &params{}
+func (c *Command) WriteInit(node *yaml.Node) (any, error) {
+	params := &outputParams{}
 	if err := node.Decode(params); err != nil {
-		return err
+		return nil, err
 	}
+	return params, nil
+}
+
+func (c *Command) Write(data any, v float64) error {
+	params := data.(*outputParams)
 	if err := exec.Command(params.Name, params.Args...).Run(); err != nil {
 		e, ok := err.(*exec.ExitError)
 		if ok {
