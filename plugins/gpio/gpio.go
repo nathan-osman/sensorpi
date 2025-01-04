@@ -18,9 +18,8 @@ type outputParams struct {
 }
 
 type triggerParams struct {
-	Pin           uint8  `yaml:"pin"`
-	PollInterval  string `yaml:"poll_interval"`
-	TriggerOnRise bool   `yaml:"trigger_on_rise"`
+	Pin          uint8  `yaml:"pin"`
+	PollInterval string `yaml:"poll_interval"`
 }
 
 type triggerData struct {
@@ -63,11 +62,7 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	if err := node.Decode(params); err != nil {
 		return nil, err
 	}
-	var edge = rpio.FallEdge
-	if params.TriggerOnRise {
-		edge = rpio.RiseEdge
-	}
-	rpio.Pin(params.Pin).Detect(edge)
+	rpio.Pin(params.Pin).Detect(rpio.AnyEdge)
 	var duration time.Duration
 	if params.PollInterval != "" {
 		d, err := time.ParseDuration(params.PollInterval)
@@ -95,11 +90,17 @@ func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 		return 0, context.Canceled
 	}
 
+	// TODO: use proper edge detection here instead of polling and then
+	// reading the current value
+
 	// Poll for rise / fall
 	for {
 		select {
 		case <-time.After(d.Duration):
 			if rpio.Pin(d.Pin).EdgeDetected() {
+				if rpio.Pin(d.Pin).Read() == rpio.High {
+					return 1, nil
+				}
 				return 0, nil
 			}
 		case <-ctx.Done():
