@@ -14,6 +14,9 @@ type InputPlugin interface {
 
 	// Read collects the value for the provided input.
 	Read(any) (float64, error)
+
+	// ReadClose performs any cleanup from ReadInit.
+	ReadClose(any)
 }
 
 // OutputPlugin represents a plugin that does something with data.
@@ -24,6 +27,9 @@ type OutputPlugin interface {
 
 	// Write processes the provided data.
 	Write(any, float64) error
+
+	// WriteClose performs any cleanup from WriteInit.
+	WriteClose(any)
 }
 
 // TriggerPlugin represents a plugin that notifies when an event occurs.
@@ -36,4 +42,7 @@ type TriggerPlugin interface {
 	// error occurred, a float64 should be returned. If the context was
 	// cancelled, context.Canceled should be returned.
 	Watch(any, context.Context) (float64, error)
+
+	// WatchClose performs any cleanup from WatchInit.
+	WatchClose(any)
 }

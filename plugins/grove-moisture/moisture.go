@@ -65,3 +65,5 @@ func (m *Moisture) Read(data any) (float64, error) {
 	v := binary.LittleEndian.Uint16(d.R)
 	return float64(v), nil
 }
+
+func (m *Moisture) ReadClose(any) {}

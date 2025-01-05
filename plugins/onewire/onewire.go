@@ -49,3 +49,5 @@ func (o *OneWire) Read(data any) (float64, error) {
 	}
 	return float64(v) / 1000, nil
 }
+
+func (o *OneWire) ReadClose(any) {}

@@ -73,6 +73,8 @@ func (i *InfluxDB) Write(data any, v float64) error {
 	return i.api.WritePoint(context.Background(), p)
 }
 
+func (i *InfluxDB) WriteClose(any) {}
+
 func (i *InfluxDB) Close() {
 	i.client.Close()
 }

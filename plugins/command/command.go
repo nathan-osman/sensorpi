@@ -44,3 +44,5 @@ func (c *Command) Write(data any, v float64) error {
 	}
 	return nil
 }
+
+func (c *Command) WriteClose(any) {}

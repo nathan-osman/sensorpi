@@ -74,6 +74,8 @@ func (m *Mqtt) Write(data any, v float64) error {
 	return nil
 }
 
+func (m *Mqtt) WriteClose(any) {}
+
 func (m *Mqtt) Close() {
 	m.client.Disconnect(1000)
 }

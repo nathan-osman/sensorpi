@@ -48,3 +48,5 @@ func (t *Timer) Watch(data any, ctx context.Context) (float64, error) {
 		return 0, context.Canceled
 	}
 }
+
+func (t *Timer) WatchClose(any) {}

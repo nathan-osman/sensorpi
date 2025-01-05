@@ -59,6 +59,8 @@ func (g *Gpio) Write(data any, v float64) error {
 	return nil
 }
 
+func (g *Gpio) WriteClose(any) {}
+
 func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	params := &triggerParams{}
 	if err := node.Decode(params); err != nil {
@@ -118,6 +120,8 @@ func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 		}
 	}
 }
+
+func (g *Gpio) WatchClose(any) {}
 
 func (g *Gpio) Close() {
 	rpio.Close()

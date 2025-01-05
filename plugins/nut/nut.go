@@ -61,3 +61,5 @@ func (n *Nut) Read(data any) (float64, error) {
 	}
 	return f, nil
 }
+
+func (n *Nut) ReadClose(any) {}

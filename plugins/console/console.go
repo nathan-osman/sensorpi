@@ -39,3 +39,5 @@ func (c *Console) Write(data any, v float64) error {
 	fmt.Printf("%s: %f\n", label, v)
 	return nil
 }
+
+func (c *Console) WriteClose(any) {}

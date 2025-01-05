@@ -51,6 +51,8 @@ func (d *Daylight) Read(data any) (float64, error) {
 	}
 }
 
+func (d *Daylight) ReadClose(any) {}
+
 func (d *Daylight) WatchInit(node *yaml.Node) (any, error) {
 	params := &inputTriggerParams{}
 	if err := node.Decode(params); err != nil {
@@ -96,3 +98,5 @@ func (d *Daylight) Watch(data any, ctx context.Context) (float64, error) {
 		return 0, context.Canceled
 	}
 }
+
+func (d *Daylight) WatchClose(any) {}
