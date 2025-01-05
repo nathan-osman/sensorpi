@@ -63,3 +63,7 @@ func (n *Nut) Read(data any) (float64, error) {
 }
 
 func (n *Nut) ReadClose(any) {}
+
+func (n *Nut) Close() {
+	n.client.Close()
+}
