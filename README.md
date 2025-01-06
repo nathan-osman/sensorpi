@@ -27,7 +27,7 @@ This is an exhaustive list of plugins available and a brief description of how t
 | gpio           | output, trigger | GPIO I/O                     |
 | grove-moisture | input           | read moisture values         |
 | influxdb       | output          | write to InfluxDB            |
-| mqtt           | output          | publish to MQTT topic        |
+| mqtt           | output, trigger | watch, publish MQTT topic    |
 | nut            | input           | read values from NUT server  |
 | onewire        | input           | read from 1-Wire sensor      |
 | timer          | trigger         | trigger at regular intervals |

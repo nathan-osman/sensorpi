@@ -10,4 +10,7 @@ func TestPlugin(t *testing.T) {
 	if !plugin.IsOutputPlugin(&Mqtt{}) {
 		t.Fatal("Mqtt does not correctly implement OutputPlugin")
 	}
+	if !plugin.IsTriggerPlugin(&Mqtt{}) {
+		t.Fatal("Mqtt does not correctly implement TriggerPlugin")
+	}
 }
