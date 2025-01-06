@@ -30,7 +30,7 @@ type triggerData struct {
 }
 
 func init() {
-	plugin.Register("gpio", func(node *yaml.Node) (any, error) {
+	plugin.Register("gpio", func(node *yaml.Node) (plugin.Plugin, error) {
 		if err := rpio.Open(); err != nil {
 			return nil, err
 		}

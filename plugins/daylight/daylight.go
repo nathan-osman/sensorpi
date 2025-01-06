@@ -19,7 +19,7 @@ type inputTriggerParams struct {
 }
 
 func init() {
-	plugin.Register("daylight", func(node *yaml.Node) (any, error) {
+	plugin.Register("daylight", func(node *yaml.Node) (plugin.Plugin, error) {
 		return &Daylight{}, nil
 	})
 }
@@ -100,3 +100,5 @@ func (d *Daylight) Watch(data any, ctx context.Context) (float64, error) {
 }
 
 func (d *Daylight) WatchClose(any) {}
+
+func (d *Daylight) Close() {}

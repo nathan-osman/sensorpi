@@ -27,7 +27,7 @@ type inputData struct {
 }
 
 func init() {
-	plugin.Register("grove-moisture", func(node *yaml.Node) (any, error) {
+	plugin.Register("grove-moisture", func(node *yaml.Node) (plugin.Plugin, error) {
 		_, err := host.Init()
 		if err != nil {
 			return nil, err
@@ -67,3 +67,5 @@ func (m *Moisture) Read(data any) (float64, error) {
 }
 
 func (m *Moisture) ReadClose(any) {}
+
+func (m *Moisture) Close() {}

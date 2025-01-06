@@ -39,7 +39,7 @@ type triggerData struct {
 }
 
 func init() {
-	plugin.Register("mqtt", func(node *yaml.Node) (any, error) {
+	plugin.Register("mqtt", func(node *yaml.Node) (plugin.Plugin, error) {
 		params := &pluginParams{}
 		if err := node.Decode(params); err != nil {
 			return nil, err

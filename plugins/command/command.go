@@ -17,7 +17,7 @@ type outputParams struct {
 }
 
 func init() {
-	plugin.Register("command", func(node *yaml.Node) (any, error) {
+	plugin.Register("command", func(node *yaml.Node) (plugin.Plugin, error) {
 		return &Command{}, nil
 	})
 }
@@ -46,3 +46,5 @@ func (c *Command) Write(data any, v float64) error {
 }
 
 func (c *Command) WriteClose(any) {}
+
+func (c *Command) Close() {}

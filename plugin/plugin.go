@@ -6,6 +6,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Plugin must be implemented by every plugin type.
+type Plugin interface {
+
+	// Close frees any resources used by the plugin.
+	Close()
+}
+
 // InputPlugin represents a plugin that reads from a sensor.
 type InputPlugin interface {
 

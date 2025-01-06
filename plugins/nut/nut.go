@@ -26,10 +26,10 @@ type inputParams struct {
 }
 
 func init() {
-	plugin.Register("nut", func(node *yaml.Node) (any, error) {
+	plugin.Register("nut", func(node *yaml.Node) (plugin.Plugin, error) {
 		params := &pluginParams{}
 		if err := node.Decode(params); err != nil {
-			return 0, err
+			return nil, err
 		}
 		return &Nut{
 			client: nutclient.New(&nutclient.Config{

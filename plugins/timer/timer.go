@@ -20,7 +20,7 @@ type triggerData struct {
 }
 
 func init() {
-	plugin.Register("timer", func(node *yaml.Node) (any, error) {
+	plugin.Register("timer", func(node *yaml.Node) (plugin.Plugin, error) {
 		return &Timer{}, nil
 	})
 }
@@ -50,3 +50,5 @@ func (t *Timer) Watch(data any, ctx context.Context) (float64, error) {
 }
 
 func (t *Timer) WatchClose(any) {}
+
+func (t *Timer) Close() {}

@@ -35,7 +35,7 @@ type managerTask struct {
 // Manager parses a configuration file and initializes inputs and outputs
 // accordingly.
 type Manager struct {
-	plugins    map[string]any
+	plugins    map[string]plugin.Plugin
 	tasks      []*managerTask
 	wg         sync.WaitGroup
 	cancelFunc context.CancelFunc
@@ -66,7 +66,7 @@ type configRoot struct {
 	} `yaml:"triggers"`
 }
 
-func (m *Manager) getPlugin(name string, node *yaml.Node) (any, error) {
+func (m *Manager) getPlugin(name string, node *yaml.Node) (plugin.Plugin, error) {
 	if p := m.plugins[name]; p != nil {
 		return p, nil
 	}
@@ -140,7 +140,7 @@ func New(filename string) (*Manager, error) {
 		now             = time.Now()
 		ctx, cancelFunc = context.WithCancel(context.Background())
 		m               = &Manager{
-			plugins:    make(map[string]any),
+			plugins:    make(map[string]plugin.Plugin),
 			cancelFunc: cancelFunc,
 			closeChan:  make(chan any),
 			closedChan: make(chan any),
@@ -275,13 +275,19 @@ func New(filename string) (*Manager, error) {
 // Close shuts down the manager.
 func (m *Manager) Close() {
 
-	// Shut down the task goroutine
+	// Shut down the task goroutine & wait for it to finish
 	close(m.closeChan)
+	<-m.closedChan
 
 	// Shut down all of the goroutine monitoring triggers
 	m.cancelFunc()
 
-	// Wait for goroutines to finish
-	<-m.closedChan
+	// Shut down all of the goroutine monitoring triggers & wait
+	m.cancelFunc()
 	m.wg.Wait()
+
+	// Cleanup any loaded plugins
+	for _, p := range m.plugins {
+		p.Close()
+	}
 }
