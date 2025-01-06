@@ -48,6 +48,7 @@ func init() {
 			mqtt.NewClientOptions().
 				AddBroker(fmt.Sprintf("tcp://%s", params.Addr)).
 				SetClientID("sensorpi").
+				SetResumeSubs(true).
 				SetPassword(params.Password).
 				SetUsername(params.Username),
 		)
