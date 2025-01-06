@@ -241,6 +241,7 @@ func New(filename string) (*Manager, error) {
 		m.wg.Add(1)
 		go func(name string, triggerData any) {
 			defer m.wg.Done()
+			defer p.WatchClose(triggerData)
 			for {
 				v, err := p.Watch(triggerData, ctx)
 				if err != nil {
