@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/nathan-osman/sensorpi/plugin"
@@ -49,7 +48,6 @@ func init() {
 			mqtt.NewClientOptions().
 				AddBroker(fmt.Sprintf("tcp://%s", params.Addr)).
 				SetClientID("sensorpi").
-				SetKeepAlive(30 * time.Second).
 				SetPassword(params.Password).
 				SetUsername(params.Username),
 		)
@@ -127,7 +125,9 @@ func (m *Mqtt) Watch(data any, ctx context.Context) (float64, error) {
 
 func (m *Mqtt) WatchClose(data any) {
 	d := data.(*triggerData)
-	m.client.Unsubscribe(d.Topic)
+	if t := m.client.Unsubscribe(d.Topic); t.Wait() && t.Error() != nil {
+		log.Warn().Msgf("mqtt: %s", t.Error())
+	}
 }
 
 func (m *Mqtt) Close() {
