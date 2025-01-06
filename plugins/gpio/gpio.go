@@ -18,15 +18,17 @@ type outputParams struct {
 }
 
 type triggerParams struct {
-	Pin          uint8  `yaml:"pin"`
-	Invert       bool   `yaml:"invert"`
-	PollInterval string `yaml:"poll_interval"`
+	Pin              uint8  `yaml:"pin"`
+	Invert           bool   `yaml:"invert"`
+	PollInterval     string `yaml:"poll_interval"`
+	DebounceInterval string `yaml:"debounce_interval"`
 }
 
 type triggerData struct {
-	Pin      uint8
-	Invert   bool
-	Duration time.Duration
+	Pin              uint8
+	Invert           bool
+	PollDuration     time.Duration
+	DebounceDuration time.Duration
 }
 
 func init() {
@@ -67,30 +69,44 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 		return nil, err
 	}
 	rpio.Pin(params.Pin).Detect(rpio.AnyEdge)
-	var duration time.Duration
+	var (
+		pollDuration     time.Duration
+		debounceDuration time.Duration
+	)
 	if params.PollInterval != "" {
 		d, err := time.ParseDuration(params.PollInterval)
 		if err != nil {
 			return nil, err
 		}
-		duration = d
+		pollDuration = d
 	}
-	if duration == 0 {
-		duration = 100 * time.Millisecond
+	if pollDuration == 0 {
+		pollDuration = 100 * time.Millisecond
+	}
+	if params.DebounceInterval != "" {
+		d, err := time.ParseDuration(params.DebounceInterval)
+		if err != nil {
+			return nil, err
+		}
+		debounceDuration = d
+	}
+	if debounceDuration == 0 {
+		debounceDuration = 500 * time.Millisecond
 	}
 	return &triggerData{
-		Pin:      params.Pin,
-		Invert:   params.Invert,
-		Duration: duration,
+		Pin:              params.Pin,
+		Invert:           params.Invert,
+		PollDuration:     pollDuration,
+		DebounceDuration: debounceDuration,
 	}, nil
 }
 
 func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 	d := data.(*triggerData)
 
-	// Pause for 100ms, to avoid phantom triggers from contact bounce
+	// Pause for a bit to avoid phantom triggers from contact bounce
 	select {
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(d.DebounceDuration):
 	case <-ctx.Done():
 		return 0, context.Canceled
 	}
@@ -101,7 +117,7 @@ func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 	// Poll for rise / fall
 	for {
 		select {
-		case <-time.After(d.Duration):
+		case <-time.After(d.PollDuration):
 			if rpio.Pin(d.Pin).EdgeDetected() {
 				var (
 					isHigh = rpio.Pin(d.Pin).Read() == rpio.High
