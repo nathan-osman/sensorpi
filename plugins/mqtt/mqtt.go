@@ -105,6 +105,7 @@ func (m *Mqtt) WatchInit(node *yaml.Node) (any, error) {
 				return
 			}
 			fChan <- v
+			log.Debug().Msgf("mqtt: received %f", v)
 		},
 	)
 	return &triggerData{
