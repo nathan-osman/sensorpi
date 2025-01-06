@@ -95,7 +95,7 @@ func (m *Mqtt) WatchInit(node *yaml.Node) (any, error) {
 		return nil, err
 	}
 	fChan := make(chan float64)
-	m.client.Subscribe(
+	if t := m.client.Subscribe(
 		params.Topic,
 		params.Qos,
 		func(client mqtt.Client, msg mqtt.Message) {
@@ -107,7 +107,9 @@ func (m *Mqtt) WatchInit(node *yaml.Node) (any, error) {
 			fChan <- v
 			log.Debug().Msgf("mqtt: received %f", v)
 		},
-	)
+	); t.Wait() && t.Error() != nil {
+		return nil, t.Error()
+	}
 	return &triggerData{
 		Topic:     params.Topic,
 		FloatChan: fChan,
