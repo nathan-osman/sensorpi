@@ -241,7 +241,12 @@ func New(filename string) (*Manager, error) {
 		m.wg.Add(1)
 		go func(name string, triggerData any) {
 			defer m.wg.Done()
-			defer p.WatchClose(triggerData)
+			defer func() {
+				p.WatchClose(triggerData)
+				for _, a := range actions {
+					a.Plugin.WriteClose(a.Data)
+				}
+			}()
 			for {
 				v, err := p.Watch(triggerData, ctx)
 				if err != nil {
@@ -279,8 +284,13 @@ func (m *Manager) Close() {
 	close(m.closeChan)
 	<-m.closedChan
 
-	// Shut down all of the goroutine monitoring triggers
-	m.cancelFunc()
+	// Cleanup the task plugins
+	for _, t := range m.tasks {
+		t.Input.Plugin.ReadClose(t.Input.Data)
+		for _, o := range t.Outputs {
+			o.Plugin.WriteClose(o.Data)
+		}
+	}
 
 	// Shut down all of the goroutine monitoring triggers & wait
 	m.cancelFunc()
