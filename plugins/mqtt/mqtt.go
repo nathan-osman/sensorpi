@@ -8,6 +8,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/nathan-osman/sensorpi/plugin"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -100,7 +101,7 @@ func (m *Mqtt) WatchInit(node *yaml.Node) (any, error) {
 		func(client mqtt.Client, msg mqtt.Message) {
 			v, err := strconv.ParseFloat(string(msg.Payload()), 64)
 			if err != nil {
-				// TODO: print warning
+				log.Warn().Msgf("mqtt: %s", err.Error())
 				return
 			}
 			fChan <- v
