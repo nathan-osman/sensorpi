@@ -12,6 +12,7 @@ import (
 	_ "github.com/nathan-osman/sensorpi/plugins/daylight"
 	_ "github.com/nathan-osman/sensorpi/plugins/gpio"
 	_ "github.com/nathan-osman/sensorpi/plugins/grove-moisture"
+	_ "github.com/nathan-osman/sensorpi/plugins/homeassistant"
 	_ "github.com/nathan-osman/sensorpi/plugins/influxdb"
 	_ "github.com/nathan-osman/sensorpi/plugins/mqtt"
 	_ "github.com/nathan-osman/sensorpi/plugins/nut"
