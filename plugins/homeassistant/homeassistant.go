@@ -20,7 +20,6 @@ type HomeAssistant struct {
 	client      mqtt.Client
 	nodeId      string
 	actionTopic string
-	stateTopic  string
 	device      map[string]any
 }
 
@@ -39,6 +38,7 @@ type outputParams struct {
 type outputParamsSensor struct {
 	ID                string `yaml:"id"`
 	Name              string `yaml:"name"`
+	Class             string `yaml:"class"`
 	UnitOfMeasurement string `yaml:"unit_of_measurement"`
 }
 
@@ -52,7 +52,7 @@ type outputData interface {
 }
 
 type outputDataSensor struct {
-	//...
+	topic string
 }
 
 type outputDataTrigger struct {
@@ -90,10 +90,6 @@ func init() {
 				"sensorpi/%s/action",
 				params.NodeId,
 			),
-			stateTopic: fmt.Sprintf(
-				"sensorpi/%s/state",
-				params.NodeId,
-			),
 			device: map[string]any{
 				"identifiers": []string{
 					fmt.Sprintf("sensorpi_%s", params.NodeId),
@@ -122,12 +118,18 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 				h.nodeId,
 				cParams.ID,
 			)
+			stateTopic = fmt.Sprintf(
+				"sensorpi/%s/%s/state",
+				h.nodeId,
+				cParams.ID,
+			)
 			payload = map[string]any{
-				"component":           "sensor",
+				"platform":            "sensor",
 				"unique_id":           cParams.ID,
 				"name":                cParams.Name,
+				"device_class":        cParams.Class,
 				"unit_of_measurement": cParams.UnitOfMeasurement,
-				"state_topic":         h.stateTopic,
+				"state_topic":         stateTopic,
 				"device":              h.device,
 			}
 		)
@@ -138,7 +140,9 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 		if t := h.client.Publish(topic, 0, true, b); t.Wait() && t.Error() != nil {
 			return nil, t.Error()
 		}
-		return &outputDataSensor{}, nil
+		return &outputDataSensor{
+			topic: topic,
+		}, nil
 	case typeTrigger:
 		cParams := &outputParamsTrigger{}
 		if err := params.Parameters.Decode(cParams); err != nil {
