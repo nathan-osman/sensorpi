@@ -36,10 +36,11 @@ type outputParams struct {
 }
 
 type outputParamsSensor struct {
-	ID                string `yaml:"id"`
-	Name              string `yaml:"name"`
-	Class             string `yaml:"class"`
-	UnitOfMeasurement string `yaml:"unit_of_measurement"`
+	ID                        string `yaml:"id"`
+	Name                      string `yaml:"name"`
+	Class                     string `yaml:"class"`
+	UnitOfMeasurement         string `yaml:"unit_of_measurement"`
+	SuggestedDisplayPrecision string `yaml:"suggested_display_precision"`
 }
 
 type outputParamsTrigger struct {
@@ -124,13 +125,14 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 				cParams.ID,
 			)
 			payload = map[string]any{
-				"platform":            "sensor",
-				"unique_id":           cParams.ID,
-				"name":                cParams.Name,
-				"device_class":        cParams.Class,
-				"unit_of_measurement": cParams.UnitOfMeasurement,
-				"state_topic":         stateTopic,
-				"device":              h.device,
+				"platform":                    "sensor",
+				"unique_id":                   cParams.ID,
+				"name":                        cParams.Name,
+				"device_class":                cParams.Class,
+				"unit_of_measurement":         cParams.UnitOfMeasurement,
+				"suggested_display_precision": cParams.SuggestedDisplayPrecision,
+				"state_topic":                 stateTopic,
+				"device":                      h.device,
 			}
 		)
 		b, err := json.Marshal(payload)
