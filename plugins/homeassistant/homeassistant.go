@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	typeSensor  = "sensor"
 	typeTrigger = "trigger"
 )
 
@@ -19,6 +20,7 @@ type HomeAssistant struct {
 	client      mqtt.Client
 	nodeId      string
 	actionTopic string
+	stateTopic  string
 	device      map[string]any
 }
 
@@ -34,6 +36,12 @@ type outputParams struct {
 	Parameters yaml.Node `yaml:"parameters"`
 }
 
+type outputParamsSensor struct {
+	ID                string `yaml:"id"`
+	Name              string `yaml:"name"`
+	UnitOfMeasurement string `yaml:"unit_of_measurement"`
+}
+
 type outputParamsTrigger struct {
 	Type    string `yaml:"type"`
 	Subtype string `yaml:"subtype"`
@@ -41,6 +49,10 @@ type outputParamsTrigger struct {
 
 type outputData interface {
 	Write(*HomeAssistant, float64) error
+}
+
+type outputDataSensor struct {
+	//...
 }
 
 type outputDataTrigger struct {
@@ -78,6 +90,10 @@ func init() {
 				"sensorpi/%s/action",
 				params.NodeId,
 			),
+			stateTopic: fmt.Sprintf(
+				"sensorpi/%s/state",
+				params.NodeId,
+			),
 			device: map[string]any{
 				"identifiers": []string{
 					fmt.Sprintf("sensorpi_%s", params.NodeId),
@@ -95,6 +111,34 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 		return nil, err
 	}
 	switch params.Type {
+	case typeSensor:
+		cParams := &outputParamsSensor{}
+		if err := params.Parameters.Decode(cParams); err != nil {
+			return nil, err
+		}
+		var (
+			topic = fmt.Sprintf(
+				"homeassistant/sensor/%s/%s/config",
+				h.nodeId,
+				cParams.ID,
+			)
+			payload = map[string]any{
+				"component":           "sensor",
+				"unique_id":           cParams.ID,
+				"name":                cParams.Name,
+				"unit_of_measurement": cParams.UnitOfMeasurement,
+				"state_topic":         h.stateTopic,
+				"device":              h.device,
+			}
+		)
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		if t := h.client.Publish(topic, 0, true, b); t.Wait() && t.Error() != nil {
+			return nil, t.Error()
+		}
+		return &outputDataSensor{}, nil
 	case typeTrigger:
 		cParams := &outputParamsTrigger{}
 		if err := params.Parameters.Decode(cParams); err != nil {
@@ -132,6 +176,10 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 	default:
 		return nil, fmt.Errorf("unrecognized type \"%s\"", params.Type)
 	}
+}
+
+func (o *outputDataSensor) Write(h *HomeAssistant, v float64) error {
+	return nil
 }
 
 func (o *outputDataTrigger) Write(h *HomeAssistant, v float64) error {
