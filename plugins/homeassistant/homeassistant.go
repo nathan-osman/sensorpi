@@ -10,6 +10,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	typeTrigger = "trigger"
+)
+
 // HomeAssistant uses MQTT (with discovery) to interact with Home Assistant
 type HomeAssistant struct {
 	client      mqtt.Client
@@ -26,11 +30,20 @@ type pluginParams struct {
 }
 
 type outputParams struct {
+	Type       string    `yaml:"type"`
+	Parameters yaml.Node `yaml:"parameters"`
+}
+
+type outputParamsTrigger struct {
 	Type    string `yaml:"type"`
 	Subtype string `yaml:"subtype"`
 }
 
-type outputData struct {
+type outputData interface {
+	Write(*HomeAssistant, float64) error
+}
+
+type outputDataTrigger struct {
 	subtype string
 }
 
@@ -81,51 +94,63 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 	if err := node.Decode(params); err != nil {
 		return nil, err
 	}
-	if params.Type == "" {
-		params.Type = "action"
-	}
-	var (
-		topic = fmt.Sprintf(
-			"homeassistant/device_automation/%s/%s_%s/config",
-			h.nodeId,
-			params.Type,
-			params.Subtype,
-		)
-		payload = map[string]any{
-			"automation_type": "trigger",
-			"type":            params.Type,
-			"subtype":         params.Subtype,
-			"payload":         params.Subtype,
-			"topic":           h.actionTopic,
-			"device":          h.device,
+	switch params.Type {
+	case typeTrigger:
+		cParams := &outputParamsTrigger{}
+		if err := params.Parameters.Decode(cParams); err != nil {
+			return nil, err
 		}
-	)
-	b, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
+		if cParams.Type == "" {
+			cParams.Type = "action"
+		}
+		var (
+			topic = fmt.Sprintf(
+				"homeassistant/device_automation/%s/%s_%s/config",
+				h.nodeId,
+				cParams.Type,
+				cParams.Subtype,
+			)
+			payload = map[string]any{
+				"automation_type": "trigger",
+				"type":            cParams.Type,
+				"subtype":         cParams.Subtype,
+				"payload":         cParams.Subtype,
+				"topic":           h.actionTopic,
+				"device":          h.device,
+			}
+		)
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		if t := h.client.Publish(topic, 0, true, b); t.Wait() && t.Error() != nil {
+			return nil, t.Error()
+		}
+		return &outputDataTrigger{
+			subtype: cParams.Subtype,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unrecognized type \"%s\"", params.Type)
 	}
-	if t := h.client.Publish(topic, 0, true, b); t.Wait() && t.Error() != nil {
-		return nil, t.Error()
-	}
-	return &outputData{
-		subtype: params.Subtype,
-	}, nil
 }
 
-func (h *HomeAssistant) Write(data any, v float64) error {
-	params := data.(*outputData)
+func (o *outputDataTrigger) Write(h *HomeAssistant, v float64) error {
 	if v == 0 {
 		return nil
 	}
 	if t := h.client.Publish(
 		h.actionTopic,
 		0,
-		true,
-		params.subtype,
+		false,
+		o.subtype,
 	); t.Wait() && t.Error() != nil {
 		return t.Error()
 	}
 	return nil
+}
+
+func (h *HomeAssistant) Write(data any, v float64) error {
+	return data.(outputData).Write(h, v)
 }
 
 func (h *HomeAssistant) WriteClose(data any) {}
