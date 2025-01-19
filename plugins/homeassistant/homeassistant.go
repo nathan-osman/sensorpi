@@ -141,7 +141,7 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 			return nil, t.Error()
 		}
 		return &outputDataSensor{
-			topic: topic,
+			topic: stateTopic,
 		}, nil
 	case typeTrigger:
 		cParams := &outputParamsTrigger{}
