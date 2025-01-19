@@ -183,6 +183,14 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 }
 
 func (o *outputDataSensor) Write(h *HomeAssistant, v float64) error {
+	if t := h.client.Publish(
+		o.topic,
+		0,
+		true,
+		fmt.Sprintf("%f", v),
+	); t.Wait() && t.Error() != nil {
+		return t.Error()
+	}
 	return nil
 }
 
