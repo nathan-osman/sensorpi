@@ -113,7 +113,7 @@ func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
 }
 
 func (h *HomeAssistant) Write(data any, v float64) error {
-	params := data.(*outputParams)
+	params := data.(*outputData)
 	if v == 0 {
 		return nil
 	}
@@ -121,7 +121,7 @@ func (h *HomeAssistant) Write(data any, v float64) error {
 		h.actionTopic,
 		0,
 		true,
-		params.Subtype,
+		params.subtype,
 	); t.Wait() && t.Error() != nil {
 		return t.Error()
 	}
