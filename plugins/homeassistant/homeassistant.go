@@ -248,7 +248,7 @@ func (h *HomeAssistant) WatchInit(node *yaml.Node) (any, error) {
 		}
 		var (
 			topic = fmt.Sprintf(
-				"homeassistant/sensor/%s/%s/config",
+				"homeassistant/light/%s/%s/config",
 				h.nodeId,
 				cParams.ID,
 			)
