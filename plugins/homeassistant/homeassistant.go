@@ -1,16 +1,19 @@
 package homeassistant
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/nathan-osman/sensorpi/plugin"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
 const (
+	typeLight   = "light"
 	typeSensor  = "sensor"
 	typeTrigger = "trigger"
 )
@@ -30,7 +33,7 @@ type pluginParams struct {
 	NodeId   string `yaml:"node_id"`
 }
 
-type outputParams struct {
+type outputTriggerParams struct {
 	Type       string    `yaml:"type"`
 	Parameters yaml.Node `yaml:"parameters"`
 }
@@ -58,6 +61,21 @@ type outputDataSensor struct {
 
 type outputDataTrigger struct {
 	subtype string
+}
+
+type triggerParamsLight struct {
+	ID   string `yaml:"id"`
+	Name string `yaml:"name"`
+}
+
+type triggerData interface {
+	Watch(*HomeAssistant, context.Context) (float64, error)
+	Close(*HomeAssistant)
+}
+
+type triggerDataLight struct {
+	topic   string
+	cmdChan <-chan bool
 }
 
 func init() {
@@ -103,7 +121,7 @@ func init() {
 }
 
 func (h *HomeAssistant) WriteInit(node *yaml.Node) (any, error) {
-	params := &outputParams{}
+	params := &outputTriggerParams{}
 	if err := node.Decode(params); err != nil {
 		return nil, err
 	}
@@ -216,6 +234,94 @@ func (h *HomeAssistant) Write(data any, v float64) error {
 }
 
 func (h *HomeAssistant) WriteClose(data any) {}
+
+func (h *HomeAssistant) WatchInit(node *yaml.Node) (any, error) {
+	params := &outputTriggerParams{}
+	if err := node.Decode(params); err != nil {
+		return nil, err
+	}
+	switch params.Type {
+	case typeLight:
+		cParams := &triggerParamsLight{}
+		if err := params.Parameters.Decode(cParams); err != nil {
+			return nil, err
+		}
+		var (
+			topic = fmt.Sprintf(
+				"homeassistant/sensor/%s/%s/config",
+				h.nodeId,
+				cParams.ID,
+			)
+			commandTopic = fmt.Sprintf(
+				"sensorpi/%s/%s/switch",
+				h.nodeId,
+				cParams.ID,
+			)
+			payload = map[string]any{
+				"platform":      "light",
+				"unique_id":     cParams.ID,
+				"name":          cParams.Name,
+				"command_topic": commandTopic,
+				"device":        h.device,
+			}
+		)
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, err
+		}
+		if t := h.client.Publish(topic, 0, true, b); t.Wait() && t.Error() != nil {
+			return nil, t.Error()
+		}
+		cmdChan := make(chan bool)
+		if t := h.client.Subscribe(
+			commandTopic,
+			0,
+			func(client mqtt.Client, msg mqtt.Message) {
+				switch string(msg.Payload()) {
+				case "ON":
+					cmdChan <- true
+				case "OFF":
+					cmdChan <- false
+				}
+			},
+		); t.Wait() && t.Error() != nil {
+			return nil, t.Error()
+		}
+		return &triggerDataLight{
+			topic:   commandTopic,
+			cmdChan: cmdChan,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unrecognized type \"%s\"", params.Type)
+	}
+}
+
+func (tr *triggerDataLight) Watch(h *HomeAssistant, ctx context.Context) (float64, error) {
+	select {
+	case v := <-tr.cmdChan:
+		if v {
+			return 1, nil
+		} else {
+			return 0, nil
+		}
+	case <-ctx.Done():
+		return 0, context.Canceled
+	}
+}
+
+func (h *HomeAssistant) Watch(data any, ctx context.Context) (float64, error) {
+	return data.(triggerData).Watch(h, ctx)
+}
+
+func (tr *triggerDataLight) Close(h *HomeAssistant) {
+	if t := h.client.Unsubscribe(tr.topic); t.Wait() && t.Error() != nil {
+		log.Warn().Msgf("mqtt: %s", t.Error())
+	}
+}
+
+func (h *HomeAssistant) WatchClose(data any) {
+	data.(triggerData).Close(h)
+}
 
 func (h *HomeAssistant) Close() {
 	h.client.Disconnect(1000)
