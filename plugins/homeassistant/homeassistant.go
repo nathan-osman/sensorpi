@@ -42,8 +42,8 @@ type outputParamsSensor struct {
 	ID                        string `yaml:"id"`
 	Name                      string `yaml:"name"`
 	Class                     string `yaml:"class"`
-	UnitOfMeasurement         string `yaml:"unit_of_measurement"`
-	SuggestedDisplayPrecision string `yaml:"suggested_display_precision"`
+	UnitOfMeasurement         string `yaml:"unit_of_measurement,omitempty"`
+	SuggestedDisplayPrecision string `yaml:"suggested_display_precision,omitempty"`
 }
 
 type outputParamsTrigger struct {
