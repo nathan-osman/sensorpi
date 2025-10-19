@@ -65,7 +65,7 @@ func parsePullUpDown(v string) (gpio.Pull, error) {
 	case "down":
 		return gpio.PullDown, nil
 	default:
-		return 0, fmt.Errorf("invalid value %s for built-in resistor")
+		return 0, fmt.Errorf("invalid value %s for built-in resistor", v)
 	}
 }
 
