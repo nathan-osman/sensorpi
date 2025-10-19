@@ -4,40 +4,69 @@ package gpio
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/nathan-osman/sensorpi/plugin"
-	"github.com/stianeikeland/go-rpio/v4"
 	"gopkg.in/yaml.v3"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
+	"periph.io/x/host/v3"
 )
 
 type Gpio struct{}
 
 type outputParams struct {
-	Pin uint8 `yaml:"pin"`
+	Pin int `yaml:"pin"`
+}
+
+type outputData struct {
+	Pin gpio.PinIO
 }
 
 type triggerParams struct {
-	Pin              uint8  `yaml:"pin"`
+	Pin              int    `yaml:"pin"`
 	Invert           bool   `yaml:"invert"`
-	PollInterval     string `yaml:"poll_interval"`
+	PullUpDown       string `yaml:"pull_up_down"`
 	DebounceInterval string `yaml:"debounce_interval"`
 }
 
 type triggerData struct {
-	Pin              uint8
+	Pin              gpio.PinIO
 	Invert           bool
-	PollDuration     time.Duration
 	DebounceDuration time.Duration
 }
 
 func init() {
 	plugin.Register("gpio", func(node *yaml.Node) (plugin.Plugin, error) {
-		if err := rpio.Open(); err != nil {
+		_, err := host.Init()
+		if err != nil {
 			return nil, err
 		}
 		return &Gpio{}, nil
 	})
+}
+
+func pinByName(pin int) (gpio.PinIO, error) {
+	p := gpioreg.ByName(strconv.Itoa(pin))
+	if p == nil {
+		return nil, fmt.Errorf("GPIO pin %d does not exist", pin)
+	}
+	return p, nil
+}
+
+func parsePullUpDown(v string) (gpio.Pull, error) {
+	switch v {
+	case "":
+		return gpio.Float, nil
+	case "up":
+		return gpio.PullUp, nil
+	case "down":
+		return gpio.PullDown, nil
+	default:
+		return 0, fmt.Errorf("invalid value %s for built-in resistor")
+	}
 }
 
 func (g *Gpio) WriteInit(node *yaml.Node) (any, error) {
@@ -45,20 +74,24 @@ func (g *Gpio) WriteInit(node *yaml.Node) (any, error) {
 	if err := node.Decode(params); err != nil {
 		return nil, err
 	}
-	rpio.Pin(params.Pin).Output()
-	return params, nil
+	p, err := pinByName(params.Pin)
+	if err != nil {
+		return nil, err
+	}
+	return &outputData{
+		Pin: p,
+	}, nil
 }
 
 func (g *Gpio) Write(data any, v float64) error {
 	var (
-		params = data.(*outputParams)
-		state  = rpio.High
+		d = data.(*outputData)
+		l = gpio.High
 	)
 	if v == 0 {
-		state = rpio.Low
+		l = gpio.Low
 	}
-	rpio.Pin(params.Pin).Write(state)
-	return nil
+	return d.Pin.Out(l)
 }
 
 func (g *Gpio) WriteClose(any) {}
@@ -68,21 +101,18 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	if err := node.Decode(params); err != nil {
 		return nil, err
 	}
-	rpio.Pin(params.Pin).Detect(rpio.AnyEdge)
-	var (
-		pollDuration     time.Duration
-		debounceDuration time.Duration
-	)
-	if params.PollInterval != "" {
-		d, err := time.ParseDuration(params.PollInterval)
-		if err != nil {
-			return nil, err
-		}
-		pollDuration = d
+	p, err := pinByName(params.Pin)
+	if err != nil {
+		return nil, err
 	}
-	if pollDuration == 0 {
-		pollDuration = 100 * time.Millisecond
+	pull, err := parsePullUpDown(params.PullUpDown)
+	if err != nil {
+		return nil, err
 	}
+	if err := p.In(pull, gpio.BothEdges); err != nil {
+		return nil, err
+	}
+	var debounceDuration time.Duration
 	if params.DebounceInterval != "" {
 		d, err := time.ParseDuration(params.DebounceInterval)
 		if err != nil {
@@ -94,9 +124,8 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 		debounceDuration = 500 * time.Millisecond
 	}
 	return &triggerData{
-		Pin:              params.Pin,
+		Pin:              p,
 		Invert:           params.Invert,
-		PollDuration:     pollDuration,
 		DebounceDuration: debounceDuration,
 	}, nil
 }
@@ -111,34 +140,36 @@ func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 		return 0, context.Canceled
 	}
 
-	// TODO: use proper edge detection here instead of polling and then
-	// reading the current value
+	// WaitForEdge will only exit if another goroutine calls In(), so we need
+	// to call WaitForEdge in a separate goroutine; this goroutine will send
+	// on the channel when a new value is available
 
-	// Poll for rise / fall
-	for {
-		select {
-		case <-time.After(d.PollDuration):
-			if rpio.Pin(d.Pin).EdgeDetected() {
-				var (
-					isHigh = rpio.Pin(d.Pin).Read() == rpio.High
-					v      float64
-				)
-				if d.Invert {
-					isHigh = !isHigh
-				}
-				if isHigh {
-					v = 1
-				}
-				return v, nil
-			}
-		case <-ctx.Done():
-			return 0, context.Canceled
+	valChan := make(chan any)
+	go func() {
+		d.Pin.WaitForEdge(-1)
+		valChan <- nil
+	}()
+
+	// Read the value
+	select {
+	case <-valChan:
+		var (
+			isHigh = d.Pin.Read() == gpio.High
+			v      float64
+		)
+		if d.Invert {
+			isHigh = !isHigh
 		}
+		if isHigh {
+			v = 1
+		}
+		return v, nil
+	case <-ctx.Done():
+		d.Pin.In(gpio.Float, gpio.NoEdge) // stop the goroutine
+		return 0, context.Canceled
 	}
 }
 
 func (g *Gpio) WatchClose(any) {}
 
-func (g *Gpio) Close() {
-	rpio.Close()
-}
+func (g *Gpio) Close() {}
