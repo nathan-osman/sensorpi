@@ -121,7 +121,7 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 		debounceDuration = d
 	}
 	if debounceDuration == 0 {
-		debounceDuration = 500 * time.Millisecond
+		debounceDuration = 200 * time.Millisecond
 	}
 	return &triggerData{
 		Pin:              p,
