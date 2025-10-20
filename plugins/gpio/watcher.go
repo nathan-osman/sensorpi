@@ -8,7 +8,7 @@ type gpioWatcher struct {
 }
 
 func (w *gpioWatcher) run() {
-	close(w.edgeChan)
+	defer close(w.edgeChan)
 	for {
 		ok := w.pin.WaitForEdge(-1)
 		if !ok {
