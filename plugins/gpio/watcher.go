@@ -23,7 +23,8 @@ func (w *gpioWatcher) run() {
 
 func newGpioWatcher(p gpio.PinIO) *gpioWatcher {
 	w := &gpioWatcher{
-		pin: p,
+		pin:      p,
+		edgeChan: make(chan any),
 	}
 	go w.run()
 	return w
