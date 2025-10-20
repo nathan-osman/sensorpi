@@ -10,7 +10,7 @@ type gpioWatcher struct {
 func (w *gpioWatcher) run() {
 	defer close(w.edgeChan)
 	for {
-		ok := w.pin.WaitForEdge(-1)
+		ok := w.pin.WaitForEdge(0)
 		if !ok {
 			break
 		}
@@ -32,11 +32,11 @@ func newGpioWatcher(p gpio.PinIO) *gpioWatcher {
 
 func (w *gpioWatcher) Close() {
 
-	// In() will cause WaitForEdge() to return false, triggering run() to
+	// Halt() will cause WaitForEdge() to return false, triggering run() to
 	// stop; then simply wait for the edgeChan to close, draining any other
 	// values being sent
 
-	w.pin.In(gpio.Float, gpio.NoEdge)
+	w.pin.Halt()
 	ok := true
 	for ok {
 		_, ok = <-w.edgeChan
