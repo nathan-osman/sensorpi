@@ -22,7 +22,7 @@ type outputParams struct {
 }
 
 type outputData struct {
-	Pin gpio.PinIO
+	pin gpio.PinIO
 }
 
 type triggerParams struct {
@@ -33,9 +33,11 @@ type triggerParams struct {
 }
 
 type triggerData struct {
-	Pin              gpio.PinIO
-	Invert           bool
-	DebounceDuration time.Duration
+	watcher          *gpioWatcher
+	invert           bool
+	lastLevel        gpio.Level
+	lastLevelTime    time.Time
+	debounceDuration time.Duration
 }
 
 func init() {
@@ -79,7 +81,7 @@ func (g *Gpio) WriteInit(node *yaml.Node) (any, error) {
 		return nil, err
 	}
 	return &outputData{
-		Pin: p,
+		pin: p,
 	}, nil
 }
 
@@ -91,7 +93,7 @@ func (g *Gpio) Write(data any, v float64) error {
 	if v == 0 {
 		l = gpio.Low
 	}
-	return d.Pin.Out(l)
+	return d.pin.Out(l)
 }
 
 func (g *Gpio) WriteClose(any) {}
@@ -112,6 +114,10 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 	if err := p.In(pull, gpio.BothEdges); err != nil {
 		return nil, err
 	}
+	lastLevel := gpio.Low
+	if params.Invert {
+		lastLevel = gpio.High
+	}
 	var debounceDuration time.Duration
 	if params.DebounceInterval != "" {
 		d, err := time.ParseDuration(params.DebounceInterval)
@@ -124,52 +130,53 @@ func (g *Gpio) WatchInit(node *yaml.Node) (any, error) {
 		debounceDuration = 200 * time.Millisecond
 	}
 	return &triggerData{
-		Pin:              p,
-		Invert:           params.Invert,
-		DebounceDuration: debounceDuration,
+		watcher:          newGpioWatcher(p),
+		invert:           params.Invert,
+		lastLevel:        lastLevel,
+		debounceDuration: debounceDuration,
 	}, nil
 }
 
 func (g *Gpio) Watch(data any, ctx context.Context) (float64, error) {
 	d := data.(*triggerData)
+	for {
+		select {
+		case <-d.watcher.edgeChan:
 
-	// Pause for a bit to avoid phantom triggers from contact bounce
-	select {
-	case <-time.After(d.DebounceDuration):
-	case <-ctx.Done():
-		return 0, context.Canceled
-	}
+			var n = time.Now()
 
-	// WaitForEdge will only exit if another goroutine calls In(), so we need
-	// to call WaitForEdge in a separate goroutine; this goroutine will send
-	// on the channel when a new value is available
+			// Don't do anything if the debounce interval hasn't elapsed
+			if n.Before(d.lastLevelTime.Add(d.debounceDuration)) {
+				continue
+			}
 
-	valChan := make(chan any)
-	go func() {
-		d.Pin.WaitForEdge(-1)
-		valChan <- nil
-	}()
+			// The pin has changed value, so invert it
+			d.lastLevel = !d.lastLevel
+			d.lastLevelTime = n
 
-	// Read the value
-	select {
-	case <-valChan:
-		var (
-			isHigh = d.Pin.Read() == gpio.High
-			v      float64
-		)
-		if d.Invert {
-			isHigh = !isHigh
+			var (
+				isHigh = d.lastLevel == gpio.High
+				v      float64
+			)
+			if d.invert {
+				isHigh = !isHigh
+			}
+			if isHigh {
+				v = 1
+			}
+
+			// Return the new value
+			return v, nil
+
+		case <-ctx.Done():
+
+			return 0, context.Canceled
 		}
-		if isHigh {
-			v = 1
-		}
-		return v, nil
-	case <-ctx.Done():
-		d.Pin.In(gpio.Float, gpio.NoEdge) // stop the goroutine
-		return 0, context.Canceled
 	}
 }
 
-func (g *Gpio) WatchClose(any) {}
+func (g *Gpio) WatchClose(data any) {
+	data.(*triggerData).watcher.Close()
+}
 
 func (g *Gpio) Close() {}
