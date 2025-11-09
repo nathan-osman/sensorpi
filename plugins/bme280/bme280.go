@@ -76,9 +76,9 @@ func (b *BME280) Read(data any) (float64, error) {
 	case quantityTemperature:
 		return env.Temperature.Celsius(), nil
 	case quantityHumidity:
-		return float64(env.Humidity), nil
+		return float64(env.Humidity) / 1e5, nil
 	case quantityPressure:
-		return float64(env.Pressure), nil
+		return float64(env.Pressure) / 1e11, nil
 	default:
 		return 0, errors.New("invalid quantity specified")
 	}
