@@ -21,6 +21,7 @@ This is an exhaustive list of plugins available and a brief description of how t
 
 | Name           | Type            | Description                  |
 | -------------- | --------------- | ---------------------------- |
+| bme280         | input           | read from a BME280 sensor    |
 | command        | output          | run a command                |
 | console        | output          | output to the console        |
 | daylight       | input, trigger  | sunrise / sunset times       |

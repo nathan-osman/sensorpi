@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/nathan-osman/sensorpi/manager"
+	_ "github.com/nathan-osman/sensorpi/plugins/bme280"
 	_ "github.com/nathan-osman/sensorpi/plugins/command"
 	_ "github.com/nathan-osman/sensorpi/plugins/console"
 	_ "github.com/nathan-osman/sensorpi/plugins/daylight"
